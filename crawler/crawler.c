@@ -10,6 +10,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <queue.h>
 #include <hash.h>
@@ -17,8 +18,8 @@
 
 int main() {
 
-	char* url = NULL;
-	strcpy(url, "https://thayer.github.io/engs50/");
+	char url[100];
+	sprintf(url, "%s", "https://thayer.github.io/engs50/");
   
 	
 	webpage_t* web = webpage_new(url, 0, NULL);
@@ -30,5 +31,8 @@ int main() {
 	}
 
 	int weblen = webpage_getHTMLlen(web);
+
+
 	printf("length html: %d\n", weblen);
+
 }
