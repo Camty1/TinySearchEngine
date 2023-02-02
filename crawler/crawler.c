@@ -10,10 +10,25 @@
  */
 
 #include <stdio.h>
-#include <../utils/queue.h>
-#include <../utils/hash.h>
-#include <../utils/webpage.h>
+#include <string.h>
+#include <queue.h>
+#include <hash.h>
+#include <webpage.h>
 
 int main() {
-	printf("Hello\n");
+
+	char* url = NULL;
+	strcpy(url, "https://thayer.github.io/engs50/");
+  
+	
+	webpage_t* web = webpage_new(url, 0, NULL);
+
+	bool result = webpage_fetch(web);
+	if (!result) {
+		printf("webpage fecth failed\n");
+		exit(EXIT_FAILURE);
+	}
+
+	int weblen = webpage_getHTMLlen(web);
+	printf("length html: %d\n", weblen);
 }
