@@ -18,21 +18,38 @@
 
 int main() {
 
+	// seed url
 	char url[100];
 	sprintf(url, "%s", "https://thayer.github.io/engs50/");
-  
-	
+
+	// creates webpage using seed url
 	webpage_t* web = webpage_new(url, 0, NULL);
 
-	bool result = webpage_fetch(web);
-	if (!result) {
+	// fetch webpage html and check that it passes
+	bool result_fetch = webpage_fetch(web);
+	if (!result_fetch) {
 		printf("webpage fecth failed\n");
 		exit(EXIT_FAILURE);
 	}
 
-	int weblen = webpage_getHTMLlen(web);
+	// scan fetched html and print all URLs and whether each URL is
+	// internal/external
+	int position = 0;
+	char *result;
 
+	while ((position = webpage_getNextURL(web, position, &result)) > 0) {
+		char* int_ext;
+		if (IsInternalURL(result))
+			int_ext = "internal";
+		else
+			int_ext = "external";
+		printf("Found %s url: %s\n", int_ext, result);
+		free(result);
+	}
 
-	printf("length html: %d\n", weblen);
+	// deallocate webpage
+ 	webpage_delete(web);
+
+	exit(EXIT_SUCCESS);
 
 }
