@@ -29,8 +29,6 @@ int main() {
 	// creates webpage using seed url
 	webpage_t* web = webpage_new(url, 0, NULL);
 
-    printf("%d\n", compareURLs(web, url));
-
 	// fetch webpage html and check that it passes
 	bool result_fetch = webpage_fetch(web);
 	if (!result_fetch) {
@@ -62,26 +60,44 @@ int main() {
 	webpage_t* temp = NULL;
 
     hashtable_t* visited = hopen(HASH_SIZE);
-    hput(visited, web, url, HASH_SIZE);
+    int hresult = hput(visited, web, url, HASH_SIZE);
     
-    char* testURL;
+    if (hresult != 0) {
+        printf("Failed putting original webpage in hashtable\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    position = webpage_getNextURL(web, position, &result);
+
+    printf("position: %d\n", position);
 	// iterate through all URLs of the given page
-	while ((position = webpage_getNextURL(web, position, &testURL)) > 0) {
+	while (position > 0) {
 		// if the URL is internal, create a new webpage for the URL and
 		// place it in the queue
 
-		if (IsInternalURL(testURL)) {
-			temp = webpage_new(testURL, 1, NULL);
+		if (IsInternalURL(result)) {
+			temp = webpage_new(result, 1, NULL);
             
             // Check if page is in hash table, and if not, add it to the
             // queue and the hash table
-            void* page = hsearch(visited, compareURLs, testURL, HASH_SIZE);
+            void* page = hsearch(visited, compareURLs, result, strlen(result)); 
             
             if (page == NULL) {
-			    qput(queue_urls, temp);
-                hput(visited, temp, testURL, HASH_SIZE);
+			    int qresult = qput(queue_urls, temp);
+                int hresult = hput(visited, temp, result, strlen(result));
+                if (qresult != 0 || hresult != 0) {
+                    printf("Error with queue and hashtable population\n");
+                    exit(EXIT_FAILURE);
+                }
+            }
+            else {
+                webpage_delete(temp);
             }
 		}
+        free(result);
+        position = webpage_getNextURL(web, position, &result);
+        printf("position: %d\n", position);
+
 	}
     
 	// prints the list of urls
@@ -106,12 +122,11 @@ int main() {
 
 }
 
+// Compare the url of a page and the given url
 bool compareURLs(void* page, const void* url) {
     char* castedURL = (char*) url;
     char* webpageURL = webpage_getURL((webpage_t*) page);
     
-
     bool result = strcmp(webpageURL, castedURL) == 0;
-    printf("%d:\n%s\n%s\n\n", result, castedURL, webpageURL);
     return result;
 }
