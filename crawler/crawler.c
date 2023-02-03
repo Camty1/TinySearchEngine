@@ -60,7 +60,7 @@ int main() {
 	webpage_t* temp = NULL;
 
     hashtable_t* visited = hopen(HASH_SIZE);
-    int hresult = hput(visited, web, url, HASH_SIZE);
+    int hresult = hput(visited, web, url, strlen(url));
     
     if (hresult != 0) {
         printf("Failed putting original webpage in hashtable\n");
