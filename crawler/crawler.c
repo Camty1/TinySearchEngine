@@ -37,7 +37,17 @@ int main() {
 		printf("webpage fecth failed\n");
 		exit(EXIT_FAILURE);
 	}
+    
+	int id = 1;
+	char *dirname = "../pages";
 
+	//sprintf(dirname, "../pages");
+	int32_t pagesave_result = pagesave(web, id, dirname);
+
+	if (pagesave_result == 0) {
+		printf("error saving page\n");
+		exit(EXIT_FAILURE);
+	}
 
 	// STEP 2: FETCH ONE PAGE
 	// scan fetched html and print all URLs and whether each URL is
@@ -128,7 +138,6 @@ int main() {
 		}
 		free(result);
 		position = webpage_getNextURL(web, position, &result);
-				//        printf("position: %d\n", position);
 
 	}
     
@@ -145,16 +154,16 @@ int main() {
 	webpage_delete(temp_page);
 
 	// STEP 5: SAVE ONE PAGE
-	int id = 1;
-	char *dirname = "../pages";
+	//int id = 1;
+	//char *dirname = "../pages";
 
 	//sprintf(dirname, "../pages");
-	int32_t pagesave_result = pagesave(web, id, dirname);
+	//int32_t pagesave_result = pagesave(web, id, dirname);
 
-	if (pagesave_result == 0) {
-		printf("error saving page\n");
-		exit(EXIT_FAILURE);
-	}
+	//if (pagesave_result == 0) {
+	//	printf("error saving page\n");
+		//exit(EXIT_FAILURE);
+	//}
 
 					 
 	
