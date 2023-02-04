@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <queue.h>
 #include <hash.h>
@@ -19,6 +20,7 @@
 #define HASH_SIZE 100
 
 bool compareURLs(void* page, const void* url);
+int32_t pagesave(webpage_t* pagep, int id, char* dirname);
 
 int main() {
 
@@ -82,7 +84,7 @@ int main() {
 		temp_page_q = (webpage_t*)qget(queue_1);	
 	}
 	webpage_delete(temp_page_q);
-
+	qclose(queue_1);
  
 	// STEP 4: HASHTABLE OF URLs
 	position = 0;
@@ -140,14 +142,28 @@ int main() {
 		webpage_delete(temp_page);
 		temp_page = (webpage_t*)qget(queue_urls);	
 	}
+	webpage_delete(temp_page);
 
- 	// close the queues
-	qclose(queue_1);
+	// STEP 5: SAVE ONE PAGE
+	int id = 1;
+	char *dirname = "../pages";
+
+	//sprintf(dirname, "../pages");
+	int32_t pagesave_result = pagesave(web, id, dirname);
+
+	if (pagesave_result == 0) {
+		printf("error saving page\n");
+		exit(EXIT_FAILURE);
+	}
+
+					 
+	
+ 	// close the queue and hash
 	qclose(queue_urls);
 	hclose(visited);
 	// deallocate webpages
  	webpage_delete(web);
-	webpage_delete(temp_page);
+	
 
 	exit(EXIT_SUCCESS);
 
@@ -160,4 +176,39 @@ bool compareURLs(void* page, const void* url) {
   
 	bool result = strcmp(webpageURL, castedURL) == 0;
 	return result;
+}
+
+int32_t pagesave(webpage_t* pagep, int id, char* dirname) {
+
+	// retrieve relevant information about given webpage
+	char *url = webpage_getURL(pagep);
+	int depth = webpage_getDepth(pagep);
+	int html_len = webpage_getHTMLlen(pagep);
+	char *html = webpage_getHTML(pagep);
+	
+	// location of file
+	char filepath[100];	
+	sprintf(filepath, "%s/%d", dirname, id);	
+
+	// open file (creates file if not exist, otherwise truncates file)
+	FILE* output_file;
+	output_file = fopen(filepath, "w+");
+	
+	if (output_file == NULL) {
+		printf("error opening file\n");
+		return 0;
+	}
+
+	// adds relevant information to file
+	fprintf(output_file, "%s\n", url);
+	fprintf(output_file, "%d\n", depth);
+	fprintf(output_file, "%d\n", html_len);
+	fprintf(output_file, "%s\n", html);
+
+	// closes the file
+	int success = fclose(output_file);
+	if (success == 0)
+		return 1;
+	else
+		return 0;
 }
