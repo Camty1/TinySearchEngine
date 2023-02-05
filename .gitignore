@@ -15,3 +15,4 @@
 
 # ignore backup dir
 .backup/
+.pages/
