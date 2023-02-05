@@ -21,161 +21,116 @@
 
 bool compareURLs(void* page, const void* url);
 int32_t pagesave(webpage_t* pagep, int id, char* dirname);
+int32_t crawl(webpage_t* currentPage, int* index, int depth, queue_t* qp, hashtable_t* ht);
 
-int main() {
-
-	// seed url
-	char url[100];
-	sprintf(url, "%s", "https://thayer.github.io/engs50/");
+int main(int argv, char* argc[]) {
+    
+    // Check number of arguments
+    if (argv != 4) {
+        printf("usage: crawler <seedurl> <pagedir> <maxdepth>\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    // Get arguments form argv
+    char* url = argc[1];
+    char* dirName = argc[2];
+    char* endptr;
+    uint32_t maxDepth = strtoul(argc[3], &endptr, 10);
+    
+    // Check if inputs are valid 
+    if (endptr[0] == '-') {
+        printf("maxdepth must be a positive integer\n");
+        exit(EXIT_FAILURE);
+    }
+     
+    // Create queue and hashtable
+    queue_t* pageQueue = qopen();
+    hashtable_t* pageTable = hopen(HASH_SIZE);
 
 	// creates webpage using seed url
 	webpage_t* web = webpage_new(url, 0, NULL);
-
-	// fetch webpage html and check that it passes
-	bool result_fetch = webpage_fetch(web);
-	if (!result_fetch) {
-		printf("webpage fecth failed\n");
-		exit(EXIT_FAILURE);
-	}
+    if (web == NULL) {
+        printf("Error making webpage with url: %s\n", url);
+        exit(EXIT_FAILURE);
+    }
     
-	int id = 1;
-	char *dirname = "../pages";
-
-	//sprintf(dirname, "../pages");
-	int32_t pagesave_result = pagesave(web, id, dirname);
-
-	if (pagesave_result == 0) {
-		printf("error saving page\n");
-		exit(EXIT_FAILURE);
-	}
-
-	// STEP 2: FETCH ONE PAGE
-	// scan fetched html and print all URLs and whether each URL is
-	// internal/external
-	printf("STEP 2\n");
-	int position = 0;
-	char* result;
-	while ((position = webpage_getNextURL(web, position, &result)) > 0) {
-		char* int_ext;
-		if (IsInternalURL(result))
-			int_ext = "internal";
-		else
-			int_ext = "external";
-		printf("Found %s url: %s\n", int_ext, result);
-		free(result);
-	}
+    // Put page into queue 
+    int32_t qResult = qput(pageQueue, web);
+    if (qResult != 0) {
+        printf("Error putting webpage into queue with url: %s\n", url);
+        exit(EXIT_FAILURE);
+    }
     
-   
-	// STEP 3: QUEUE OF WEBPAGES
-	position = 0;
-	queue_t* queue_1 = qopen();
-	webpage_t* temp_q = NULL;
-  position = webpage_getNextURL(web, position, &result);
-	// iterate through all URLs of the given page
-	while (position > 0) {
-		// if the URL is internal, create a new webpage for the URL and
-		// place it in the queue
-		if (IsInternalURL(result)) {
-			temp_q = webpage_new(result, 1, NULL);    
-			qput(queue_1, temp_q);
-		}
-    free(result);
-		position = webpage_getNextURL(web, position, &result);
-	}
+    // Put page into hashtable
+    int32_t hResult = hput(pageTable, web, url, strlen(url));
+    if (hResult != 0) {
+        printf("Error putting webpage into hashtable with url: %s\n", url);
+        exit(EXIT_FAILURE);
+    }
     
-	// prints the list of urls
-	printf("\nSTEP 3\n");
-	webpage_t* temp_page_q = (webpage_t*)qget(queue_1);
-	char* temp_url_q = NULL;
-	while (temp_page_q != NULL) {
-		temp_url_q = webpage_getURL(temp_page_q);
-		printf("%s in queue\n", temp_url_q);
-		webpage_delete(temp_page_q);
-		temp_page_q = (webpage_t*)qget(queue_1);	
-	}
-	webpage_delete(temp_page_q);
-	qclose(queue_1);
- 
-	// STEP 4: HASHTABLE OF URLs
-	position = 0;
-	queue_t* queue_urls = qopen();
-	webpage_t* temp = NULL;
+	int id = 0;
 
-	hashtable_t* visited = hopen(HASH_SIZE);
-	int hresult = hput(visited, web, url, strlen(url));
-	
-	if (hresult != 0) {
-		printf("Failed putting original webpage in hashtable\n");
-		exit(EXIT_FAILURE);
-	}
-    
-	position = webpage_getNextURL(web, position, &result);
+    webpage_t* page;
 
-	//    printf("position: %d\n", position);
-	// iterate through all URLs of the given page
-	while (position > 0) {
-		// if the URL is internal, create a new webpage for the URL and
-		// place it in the queue
+    while ((page = (webpage_t*) qget(pageQueue)) != NULL) {
 
-		if (IsInternalURL(result)) {
-			temp = webpage_new(result, 1, NULL);
-            
-			// Check if page is in hash table, and if not, add it to the
-			// queue and the hash table
-			void* page = hsearch(visited, compareURLs, result, strlen(result)); 
-      
-			if (page == NULL) {
-			    int qresult = qput(queue_urls, temp);
-					int hresult = hput(visited, temp, result, strlen(result));
-					if (qresult != 0 || hresult != 0) {
-						printf("Error with queue and hashtable population\n");
-						exit(EXIT_FAILURE);
-					}
-			}
-			else {
-				webpage_delete(temp);
-			}
-		}
-		free(result);
-		position = webpage_getNextURL(web, position, &result);
+        id++;
 
-	}
-    
-	// prints the list of urls
-	printf("\nSTEP 4\n");
-	webpage_t* temp_page = (webpage_t*)qget(queue_urls);
-	char* temp_url = NULL;
-	while (temp_page != NULL) {
-		temp_url = webpage_getURL(temp_page);
-		printf("%s in queue\n", temp_url);
-		webpage_delete(temp_page);
-		temp_page = (webpage_t*)qget(queue_urls);	
-	}
-	webpage_delete(temp_page);
+	    // fetch webpage html and check that it passes
+	    bool result_fetch = webpage_fetch(page);
+	    if (!result_fetch) {
+		    printf("webpage fecth failed with url: %s\n", webpage_getURL(page));
+		    exit(EXIT_FAILURE);
+	    }
 
-	// STEP 5: SAVE ONE PAGE
-	//int id = 1;
-	//char *dirname = "../pages";
+        // Save page to directory and check that it passes
+	    int32_t pagesave_result = pagesave(page, id, dirName);
+	    if (pagesave_result == 0) {
+		    printf("error saving page with url: %s\n", webpage_getURL(page));
+		    exit(EXIT_FAILURE);
+	    }
+        
+        // Page crawling
+	    int position = 0;
+	    char* result;
+        int currentDepth = webpage_getDepth(page);
+        if (currentDepth < maxDepth) {
+	        while ((position = webpage_getNextURL(web, position, &result)) > 0) {
+		        if (IsInternalURL(result)) {
 
-	//sprintf(dirname, "../pages");
-	//int32_t pagesave_result = pagesave(web, id, dirname);
+    			    webpage_t* crawled = webpage_new(result, currentDepth + 1, NULL);
+                
+    			    // Check if page is in hash table, and if not, add it to the
+    			    // queue and the hash table
+    			    void* pageSearch = hsearch(pageTable, compareURLs, result, strlen(result)); 
+        		    if (pageSearch == NULL) {
+		    	    
+                        // Since page hasn't been visited yet, put it in que and table
+                        int qresult = qput(pageQueue, crawled);
+			            int hresult = hput(pageTable, crawled, result, strlen(result));
+                        if (qresult != 0 || hresult != 0) {
+			                printf("Error with queue and hashtable population\n");
+					        exit(EXIT_FAILURE);
+				        }
 
-	//if (pagesave_result == 0) {
-	//	printf("error saving page\n");
-		//exit(EXIT_FAILURE);
-	//}
-
-					 
-	
+			        }
+                
+                    // Page has been visited
+			        else 
+				        webpage_delete(crawled);
+	        
+                }
+            // Deallocate result 
+            free(result);
+		    }
+        } 
+        webpage_delete(page);
+    }
  	// close the queue and hash
-	qclose(queue_urls);
-	hclose(visited);
-	// deallocate webpages
- 	webpage_delete(web);
-	
+	qclose(pageQueue);
+	hclose(pageTable);
 
 	exit(EXIT_SUCCESS);
-
 }
 
 // Compare the url of a page and the given url
