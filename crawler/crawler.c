@@ -87,6 +87,7 @@ int main(int argv, char* argc[]) {
 		if (!result_fetch) {
 			printf("webpage fecth failed with url: %s\n", webpage_getURL(page));
 			id --;
+			webpage_delete(page);
 			continue;
 		}
 
