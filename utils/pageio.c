@@ -59,7 +59,7 @@ webpage_t* pageload(int id, char* dirnm) {
     int html_len;
    
     // Get variables from file 
-    int scan_result = fscanf(read_file, "%s %d %d", url, &depth, &html_len); 
+    int scan_result = fscanf(read_file, "%s %d %d ", url, &depth, &html_len); 
     
     if (scan_result != 3) {
         printf("Error reading from file first three items\n");
@@ -72,7 +72,7 @@ webpage_t* pageload(int id, char* dirnm) {
     // Create format string for fscanf
     char formatString[30];
     sprintf(formatString, "%c%d%c", '%', html_len, 'c');
-
+		printf("%s\n",formatString); 
     // Read from file
     scan_result = fscanf(read_file, formatString, html);
 

@@ -23,5 +23,9 @@ int main(void) {
 	page_1 = pageload(1, "../pages");
 	pagesave(page_1, 100, "../pages");
 	page_2 = pageload(100, "../pages");
+	printf("page 1: %s\n", webpage_getHTML(page_1));
+	printf("-----------------------------------------------\n");
+	printf("page 2: %s\n", webpage_getHTML(page_2));
+
 	return 0;
 }
