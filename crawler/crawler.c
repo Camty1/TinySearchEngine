@@ -16,6 +16,7 @@
 #include <queue.h>
 #include <hash.h>
 #include <webpage.h>
+#include <pageio.h>
 
 #define HASH_SIZE 100
 
@@ -93,7 +94,7 @@ int main(int argv, char* argc[]) {
 
 		// Save page to directory and check that it passes
 		int32_t pagesave_result = pagesave(page, id, dirName);
-		if (pagesave_result == 0) {
+		if (pagesave_result == 1) {
 			printf("error saving page with url: %s\n", webpage_getURL(page));
 			exit(EXIT_FAILURE);
 		}
@@ -166,39 +167,4 @@ bool compareURLs(void* page, const void* url) {
 	char* webpageURL = webpage_getURL(castedPage);
 	bool result = (strcmp(webpageURL, castedURL) == 0);
 	return result;
-}
-
-int32_t pagesave(webpage_t* pagep, int id, char* dirname) {
-
-	// retrieve relevant information about given webpage
-	char *url = webpage_getURL(pagep);
-	int depth = webpage_getDepth(pagep);
-	int html_len = webpage_getHTMLlen(pagep);
-	char *html = webpage_getHTML(pagep);
-	
-	// location of file
-	char filepath[100];	
-	sprintf(filepath, "%s/%d", dirname, id);	
-
-	// open file (creates file if not exist, otherwise truncates file)
-	FILE* output_file;
-	output_file = fopen(filepath, "w+");
-	
-	if (output_file == NULL) {
-		printf("error opening file\n");
-		return 0;
-	}
-
-	// adds relevant information to file
-	fprintf(output_file, "%s\n", url);
-	fprintf(output_file, "%d\n", depth);
-	fprintf(output_file, "%d\n", html_len);
-	fprintf(output_file, "%s\n", html);
-
-	// closes the file
-	int success = fclose(output_file);
-	if (success == 0)
-		return 1;
-	else
-		return 0;
 }
