@@ -20,7 +20,7 @@
 #include <pageio.h>
 
 
-#define HASH_SIZE 100
+#define HASH_SIZE 100 
 
 int total_word_count = 0;
 
@@ -32,6 +32,7 @@ typedef struct {
 bool wordMatch(void *elementp, const void* keyp);
 void removeWords(void* elementp);
 void calculate_total(void* elementp);
+void print_element(void* elementp);
 
 static int NormalizeWord(char *word, int word_len) {
 	if (word_len > 2) {
@@ -73,57 +74,63 @@ int main(void) {
     fclose(output);
 		*/
     hashtable_t* index = hopen(HASH_SIZE);
-		
     //pos = 0;
     while ((pos = webpage_getNextWord(webpage_1, pos, &word)) > 0) {
         int res = NormalizeWord(word, strlen(word));
         if (res == 0) {
-					wordCount_t* result = (wordCount_t*) hsearch(index, wordMatch, word, sizeof(wordCount_t*));
-					// if word already in hash table, increment its count by 1
-					if (result != NULL) {
-						result -> count = result -> count + 1;
-					}
-					// if word not in hash table, add it to hash table with count 1
-					else {
-						wordCount_t* newWord = (wordCount_t*)malloc(sizeof(wordCount_t));
-						newWord -> word = word;
-						newWord -> count = 1;
-						int hashRes = hput(index, newWord, word, sizeof(word));
-						if (hashRes != 0)
-							return -1;
-					}
-					
-					
+		    wordCount_t* result = (wordCount_t*) hsearch(index, wordMatch, word, strlen(word)); 
+			// if word already in hash table, increment its count by 1
+			if (result != NULL) {
+				result -> count = result -> count + 1;
+                free(word);
+			}
+			// if word not in hash table, add it to hash table with count 1
+			else {
+			    wordCount_t* newWord = (wordCount_t*)malloc(sizeof(wordCount_t));
+			    newWord -> word = word;
+			    newWord -> count = 1;
+			    int hashRes = hput(index, newWord, word, strlen(word));
+			    if (hashRes != 0)
+			    	return -1;
+			}
         }
-				free(word);
-		}
-		fclose(output);
+        else {
+            free(word);
+        }
+	}
+	fclose(output);
+    happly(index, print_element);
 
-
-		happly(index, calculate_total);
-		printf("total words: %d\n", total_word_count);
-		happly(index, removeWords);
-		hclose(index);
-		webpage_delete(webpage_1);
-		return 0;
+	happly(index, calculate_total);
+	printf("total words: %d\n", total_word_count);
+	happly(index, removeWords);
+	hclose(index);
+	webpage_delete(webpage_1);
+	return 0;
 }
 
 void removeWords(void *elementp) {
-	wordCount_t* entry = (wordCount_t*) elementp;
-	free(entry);
+    wordCount_t* wordCount = (wordCount_t*) elementp;
+    free(wordCount->word);
+	free(wordCount);
 }
 
-		bool wordMatch(void* elementp, const void* keyp) {
-			wordCount_t* entry = (wordCount_t*) elementp;
-			const char* key = (char*) keyp;
+bool wordMatch(void* elementp, const void* keyp) {
+	wordCount_t* entry = (wordCount_t*) elementp;
+	const char* key = (char*) keyp;
 
-			char* entry_word = entry -> word;
+	char* entry_word = entry -> word;
 
-			return strcmp(entry_word, key) == 0;
-		}
+	return (strcmp(entry_word, key) == 0);
+}
 
 
 void calculate_total(void* elementp) {
 	wordCount_t* entry = (wordCount_t*) elementp;
 	total_word_count = total_word_count + entry -> count;
+}
+
+void print_element(void* elementp) {
+    wordCount_t* entry = (wordCount_t*) elementp;
+    printf("%s-%d\n", entry->word, entry->count);
 }
