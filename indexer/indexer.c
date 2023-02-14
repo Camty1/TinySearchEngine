@@ -84,8 +84,10 @@ int main(void) {
 					}
 					// if word not in hash table, add it to hash table with count 1
 					else {
-						wordCount_t newWord = { .word = word, .count = 1 };
-					  int hashRes = hput(index, &newWord, word, sizeof(word));
+						wordCount_t* newWord = (wordCount_t*)malloc(sizeof(wordCount_t));
+						newWord -> word = word;
+						newWord -> count = 1;
+						int hashRes = hput(index, newWord, word, sizeof(word));
 						if (hashRes != 0)
 							return -1;
 					}
