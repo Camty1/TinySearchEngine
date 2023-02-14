@@ -19,7 +19,7 @@
 #include <hash.h>
 #include <webpage.h>
 #include <pageio.h>
-
+#include <indexio.h>
 
 #define HASH_SIZE 100 
 
@@ -72,6 +72,7 @@ int main(int argc, char* argv[]) {
         // Get total number of words
         happly(index, sumWords);
         printf("%d\n", total_word_count);
+        indexSave(index, "testFile");
 
         // Memory management
         happly(index, removeWordQueue);
