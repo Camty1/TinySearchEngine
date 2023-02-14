@@ -32,7 +32,6 @@ int32_t pagesave(webpage_t* pagep, int id, char* dirnm) {
     fprintf(output_file, "%d\n", depth);
     fprintf(output_file, "%d\n", html_len);
     fprintf(output_file, "%s\n", html);
-
     int success = fclose(output_file);
 
     return success;
@@ -76,7 +75,7 @@ webpage_t* pageload(int id, char* dirnm) {
     // Read from file
     scan_result = fscanf(read_file, formatString, html);
 
-    html[html_len] = '\0';
+    html[html_len-1] = '\0';
 
     if (scan_result == 0) {
         printf("Error reading html\n");

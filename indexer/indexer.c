@@ -18,6 +18,12 @@
 #include <webpage.h>
 #include <pageio.h>
 
+#define HASH_SIZE 100
+
+typedef struct {
+    char* word;
+    int count;
+} wordCount_t;
 
 static int NormalizeWord(char *word, int word_len) {
 	if (word_len > 2) {
@@ -42,13 +48,29 @@ static int NormalizeWord(char *word, int word_len) {
 int main(void) {
 	webpage_t *webpage_1 = pageload(1, "../pages");
 	int pos = 0;
-	int prev_pos = 0;
 	char *word;
+
+    FILE* output;
+
+    output = fopen("indexerOut", "w");
 	while ((pos = webpage_getNextWord(webpage_1, pos, &word)) > 0) {
-		int res = NormalizeWord(word, (pos-prev_pos));
-		if (res == 0) printf("%s\n", word);
-		free(word);
-		prev_pos = pos;
+        int res = NormalizeWord(word, strlen(word));
+		if (res == 0) 
+            fprintf(output, "%s\n", word);
+		
+        free(word);
 	}
+
+    fclose(output);
+
+    hashtable_t index = hopen(HASH_SIZE);
+
+    pos = 0;
+    while ((pos = webpage_getNextWord(webpage_1, pos, &word)) > 0) {
+        int res = NormalizeWord(word, strlen(word));
+        if (res == 0) {
+            
+            int hashRes = hput();
+        }
 	return 0;
 }
