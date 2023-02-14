@@ -30,6 +30,7 @@ typedef struct {
 } wordCount_t;
 
 bool wordMatch(void *elementp, const void* keyp);
+void removeWords(void* elementp);
 void calculate_total(void* elementp);
 
 static int NormalizeWord(char *word, int word_len) {
@@ -95,17 +96,21 @@ int main(void) {
 					
         }
 				free(word);
-	  
 		}
 		fclose(output);
 
 
 		happly(index, calculate_total);
 		printf("total words: %d\n", total_word_count);
-		
+		happly(index, removeWords);
 		hclose(index);
 		webpage_delete(webpage_1);
 		return 0;
+}
+
+void removeWords(void *elementp) {
+	wordCount_t* entry = (wordCount_t*) elementp;
+	free(entry);
 }
 
 		bool wordMatch(void* elementp, const void* keyp) {
