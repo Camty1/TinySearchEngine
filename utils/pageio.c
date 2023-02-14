@@ -71,7 +71,7 @@ webpage_t* pageload(int id, char* dirnm) {
     // Create format string for fscanf
     char formatString[30];
     sprintf(formatString, "%c%d%c", '%', html_len, 'c');
-		printf("%s\n",formatString); 
+		// printf("%s\n",formatString); 
     // Read from file
     scan_result = fscanf(read_file, formatString, html);
 

@@ -15,15 +15,22 @@
 #include <stdint.h>
 #include <string.h>
 #include <ctype.h>
+#include <hash.h>
 #include <webpage.h>
 #include <pageio.h>
 
+
 #define HASH_SIZE 100
+
+int total_word_count = 0;
 
 typedef struct {
     char* word;
     int count;
 } wordCount_t;
+
+bool wordMatch(void *elementp, const void* keyp);
+void calculate_total(void* elementp);
 
 static int NormalizeWord(char *word, int word_len) {
 	if (word_len > 2) {
@@ -53,6 +60,7 @@ int main(void) {
     FILE* output;
 
     output = fopen("indexerOut", "w");
+		/*
 	while ((pos = webpage_getNextWord(webpage_1, pos, &word)) > 0) {
         int res = NormalizeWord(word, strlen(word));
 		if (res == 0) 
@@ -62,15 +70,55 @@ int main(void) {
 	}
 
     fclose(output);
-
-    hashtable_t index = hopen(HASH_SIZE);
-
-    pos = 0;
+		*/
+    hashtable_t* index = hopen(HASH_SIZE);
+		
+    //pos = 0;
     while ((pos = webpage_getNextWord(webpage_1, pos, &word)) > 0) {
         int res = NormalizeWord(word, strlen(word));
         if (res == 0) {
-            
-            int hashRes = hput();
+					wordCount_t* result = (wordCount_t*) hsearch(index, wordMatch, word, sizeof(wordCount_t*));
+					// if word already in hash table, increment its count by 1
+					if (result != NULL) {
+						result -> count = result -> count + 1;
+					}
+					// if word not in hash table, add it to hash table with count 1
+					else {
+						wordCount_t* newWord = (wordCount_t*) malloc(sizeof(wordCount_t));
+						newWord -> word = word;
+						newWord -> count = 1;
+																					
+						int hashRes = hput(index, newWord, word, sizeof(word));
+						if (hashRes != 0)
+							return -1;
+					}
+					
+					
         }
-	return 0;
+				free(word);
+	  
+		}
+		fclose(output);
+
+
+		happly(index, calculate_total);
+		printf("total words: %d\n", total_word_count);
+		
+		hclose(index);
+		return 0;
+}
+
+		bool wordMatch(void* elementp, const void* keyp) {
+			wordCount_t* entry = (wordCount_t*) elementp;
+			const char* key = (char*) keyp;
+
+			char* entry_word = entry -> word;
+
+			return strcmp(entry_word, key) == 0;
+		}
+
+
+void calculate_total(void* elementp) {
+	wordCount_t* entry = (wordCount_t*) elementp;
+	total_word_count = total_word_count + entry -> count;
 }
