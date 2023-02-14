@@ -74,8 +74,14 @@ int main(int argc, char* argv[]) {
         printf("%d\n", total_word_count);
         indexSave(index, "testFile");
 
+        // Test loading index file
+        hashtable_t* index2 = indexLoad("testFile");
+        happly(index2, printElement);
+
         // Memory management
         happly(index, removeWordQueue);
+        happly(index2, removeWordQueue);
+        hclose(index2);
         hclose(index);
     }
     

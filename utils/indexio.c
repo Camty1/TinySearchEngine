@@ -31,18 +31,20 @@ int indexSave(hashtable_t* index, char* indexnm) {
 hashtable_t* indexLoad(char* indexnm) {
     char buffer[100];
     inputFile = fopen(indexnm, "r");
-    fclose(inputFile);
 
     hashtable_t* index = hopen(HASH_SIZE);
 
     int readState = 0;
     int lengthCounter = 0;
     char ch;
+    char* end;
 
     char* word;
     queue_t* queue;
     wordQueue_t* wq;
     docWordCount_t* doc;
+    int documentId;
+    int count;
 
     while ((ch = fgetc(inputFile)) != EOF) {
         if (readState == 0) {
@@ -68,6 +70,9 @@ hashtable_t* indexLoad(char* indexnm) {
                 wq->word = word;
                 wq->documentQueue = queue;
 
+                // Put word queue into index
+                hput(index, wq, word, strlen(word));
+
                 // Set length back to 0 and move onto next state
                 lengthCounter = 0;
                 readState = 1;
@@ -79,15 +84,59 @@ hashtable_t* indexLoad(char* indexnm) {
                 lengthCounter++;
             }
             else {
-                // TODO: Convert string to int, change state, reset length counter
+                // Terminate string
+                buffer[lengthCounter] = '\0';
+
+                // Convert string to documentId
+                documentId = strtol(buffer, &end, 10);
+
+                // Reset length counter and move to next state
+                lengthCounter = 0;
+                readState = 2;
             }
         }
         else {
-            // TODO: Traverse string, check for ' ' or '\n', convert string to int, make docWordCount_t object, push to queue, chage state
+            // Has not reached end of number yet
+            if (ch != ' ' && ch != '\n') {
+                // Add character to buffer
+                buffer[lengthCounter] = ch;
+                lengthCounter++;
+            }
+
+            // Reached end of number
+            else {
+                // Terminate string
+                buffer[lengthCounter] = '\0';
+
+                // Convert string to int
+                count = strtol(buffer, &end, 10);
+
+                // Another document to be added, go back to state 1
+                if (ch == ' ') {
+                    readState = 1;
+                }
+
+                // Last document for this word, new line and new word
+                else {
+                    readState = 0; 
+                }
+
+                // Reset length counter
+                lengthCounter = 0;
+
+                // Allocate memory on heap for docWordCount_t object
+                doc = (docWordCount_t*) malloc(sizeof(docWordCount_t));
+
+                // Assign variables
+                doc->documentId = documentId;
+                doc->count = count;
+
+                // Add to word queue
+                qput(wq->documentQueue, doc);
+            }
         }
     }
     return index;
-    
 }
 
 static void printWordToFile(void* elementp) {
