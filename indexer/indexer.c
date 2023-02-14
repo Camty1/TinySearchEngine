@@ -44,21 +44,48 @@ static bool wordMatch(void *elementp, const void* keyp);
 static bool wordQueueMatch(void* elementp, const void* keyp);
 static void removeWords(void* elementp);
 static void calculate_total(void* elementp);
-static void print_element(void* elementp);
+static void printElement(void* elementp);
 static int normalizeWord(char* word, int word_len);
 static bool matchDocumentIds(void* elementp, const void* keyp);
+static void removeDocCount(void *elementp);
+static void removeWordQueue(void *elementp);
+static void sumWords(void* elementp);
+static void sumQueueWords(void* elementp);
+static void indexPage(hashtable_t* index, int document, char* dirName);
+static void printQueueElement(void* elementp);
 
-int main(void) {
-    int document = 1;
-	webpage_t *webpage_1 = pageload(document, "../pages");
-	int pos = 0;
-	char *word;
+int main(int argc, char* argv[]) {
 
-    FILE* output;
+    if (argc == 2) {
+        // Parse terminal input
+        char* extra;
+        int document = strtol(argv[1], &extra, 10);
+        
+        // Create index
+        hashtable_t* index = hopen(HASH_SIZE);
 
-    output = fopen("indexerOut", "w");
+        // Loop through documents
+        for (int i = 1; i <= document; i++) {
+            indexPage(index, i, "../pages");
+        }
+
+        // Get total number of words
+        happly(index, sumWords);
+        printf("%d\n", total_word_count);
+
+        // Memory management
+        happly(index, removeWordQueue);
+        hclose(index);
+    }
+    
+    // OLD STUFF -- KEEPING HERE JUST IN CASE
+
+    //happly(index, printElement);
+    //FILE* output;
+
+    //output = fopen("indexerOut", "w");
 		/*
-	while ((pos = webpage_getNextWord(webpage_1, pos, &word)) > 0) {
+	while ((pos = webpage_getNextWord(webpage, pos, &word)) > 0) {
         int res = NormalizeWord(word, strlen(word));
 		if (res == 0) 
             fprintf(output, "%s\n", word);
@@ -68,9 +95,8 @@ int main(void) {
 
     fclose(output);
 		*/
-    hashtable_t* index = hopen(HASH_SIZE);
     /*
-    while ((pos = webpage_getNextWord(webpage_1, pos, &word)) > 0) {
+    while ((pos = webpage_getNextWord(webpage, pos, &word)) > 0) {
         int res = normalizeWord(word, strlen(word));
         if (res == 0) {
 		    wordCount_t* result = (wordCount_t*) hsearch(index, wordMatch, word, strlen(word)); 
@@ -101,8 +127,8 @@ int main(void) {
 	happly(index, removeWords);
 	hclose(index);
     */
-
-    while ((pos = webpage_getNextWord(webpage_1, pos, &word)) > 0) {
+    /*
+    while ((pos = webpage_getNextWord(webpage, pos, &word)) > 0) {
         int res = normalizeWord(word, strlen(word));
         if (res == 0) {
             wordQueue_t* hashSearch = hsearch(index, wordQueueMatch, word, strlen(word));
@@ -119,7 +145,8 @@ int main(void) {
                 docWordCount_t* newCount = malloc(sizeof(docWordCount_t));
                 newCount->documentId = document;
                 newCount->count = 1;
-                qput(queue, newCount);
+                res = qput(queue, newCount);
+                hput(index, docQueue, word, strlen(word));
             }
             
             // Word is in index
@@ -145,8 +172,65 @@ int main(void) {
             free(word);
         }
     }
-	webpage_delete(webpage_1);
+    */
+    //happly(index, print_element);
+    //fclose(output);
 	return 0;
+}
+
+static void indexPage(hashtable_t* index, int document, char* dirName) {
+	int pos = 0;
+	char *word;
+    
+    // Load in webpage 
+	webpage_t *webpage = pageload(document, dirName);
+
+    // Go through every word on webpage 
+    while ((pos = webpage_getNextWord(webpage, pos, &word)) > 0) {
+        int res = normalizeWord(word, strlen(word));
+        if (res == 0) {
+            wordQueue_t* hashSearch = hsearch(index, wordQueueMatch, word, strlen(word));
+            
+            // Word isn't in index yet
+            if (hashSearch == NULL) {
+
+                // Create a word queue and initialize it
+                wordQueue_t* docQueue = (wordQueue_t*) malloc(sizeof(wordQueue_t));
+                docQueue->word = word;
+                queue_t* queue = qopen();
+                docQueue->documentQueue = queue;
+
+                // Put document in queue with word count 1
+                docWordCount_t* newCount = malloc(sizeof(docWordCount_t));
+                newCount->documentId = document;
+                newCount->count = 1;
+                res = qput(queue, newCount);
+                hput(index, docQueue, word, strlen(word));
+            }
+            
+            // Word is in index
+            else {
+                docWordCount_t* queueSearch = (docWordCount_t*) qsearch(hashSearch->documentQueue, matchDocumentIds, &document); 
+                // Document isn't in queue
+                if (queueSearch == NULL) {
+                    docWordCount_t* newCount = malloc(sizeof(docWordCount_t));
+                    newCount->documentId = document;
+                    newCount->count = 1;
+                    qput(hashSearch->documentQueue, newCount);
+                }
+                // Document is in queue
+                else {
+                    queueSearch->count++;
+                }
+                free(word);
+            }
+        }
+        // Word is malformed or too short, get it out of here
+        else {
+            free(word);
+        }
+    }
+	webpage_delete(webpage);
 }
 
 static void removeWords(void *elementp) {
@@ -154,6 +238,19 @@ static void removeWords(void *elementp) {
     free(wordCount->word);
 	free(wordCount);
 }
+
+static void removeWordQueue(void *elementp) {
+    wordQueue_t* wq = (wordQueue_t*) elementp;
+    free(wq->word);
+    qapply(wq->documentQueue, removeDocCount);
+    qclose(wq->documentQueue);
+    free(wq);
+}
+
+static void removeDocCount(void *elementp) {
+    free(elementp);
+}
+
 
 static bool wordMatch(void* elementp, const void* keyp) {
 	wordCount_t* entry = (wordCount_t*) elementp;
@@ -174,10 +271,10 @@ static bool wordQueueMatch(void* elementp, const void* keyp) {
 }
 
 static bool matchDocumentIds(void* elementp, const void* keyp) {
-    int key = *(int*) keyp;
+    int* pointer = (int*) keyp;
     docWordCount_t* element = (docWordCount_t*) elementp;
 
-    return (key == element->documentId);
+    return (*pointer == element->documentId);
 }
 
 static void calculate_total(void* elementp) {
@@ -185,9 +282,26 @@ static void calculate_total(void* elementp) {
 	total_word_count = total_word_count + entry -> count;
 }
 
-static void print_element(void* elementp) {
-    wordCount_t* entry = (wordCount_t*) elementp;
-    printf("%s-%d\n", entry->word, entry->count);
+static void sumWords(void* elementp) {
+    wordQueue_t* entry = (wordQueue_t*) elementp;
+    qapply(entry->documentQueue, sumQueueWords);
+}
+
+static void sumQueueWords(void* elementp) {
+    docWordCount_t* doc = (docWordCount_t*) elementp;
+    total_word_count += doc -> count;
+}
+
+static void printElement(void* elementp) {
+    wordQueue_t* entry = (wordQueue_t*) elementp;
+    printf("%s", entry->word);
+    qapply(entry->documentQueue, printQueueElement);
+    printf("\n");
+}
+
+static void printQueueElement(void* elementp) {
+    docWordCount_t* doc = (docWordCount_t*) elementp;
+    printf("-%d,%d", doc->documentId, doc->count);
 }
 
 static int normalizeWord(char *word, int word_len) {
