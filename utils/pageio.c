@@ -89,6 +89,6 @@ webpage_t* pageload(int id, char* dirnm) {
         printf("Error creating webpage\n");
         return NULL;
     }
-
+		fclose(read_file);
     return page;
 }
