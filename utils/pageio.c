@@ -75,7 +75,7 @@ webpage_t* pageload(int id, char* dirnm) {
     // Read from file
     scan_result = fscanf(read_file, formatString, html);
 
-    html[html_len-1] = '\0';
+		html[html_len] = '\0';
 
     if (scan_result == 0) {
         printf("Error reading html\n");
