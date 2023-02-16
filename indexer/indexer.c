@@ -197,7 +197,7 @@ static void indexPage(hashtable_t* index, int document, char* dirName) {
         int res = normalizeWord(word, strlen(word));
         if (res == 0) {
             wordQueue_t* hashSearch = hsearch(index, wordQueueMatch, word, strlen(word));
-            
+
             // Word isn't in index yet
             if (hashSearch == NULL) {
 

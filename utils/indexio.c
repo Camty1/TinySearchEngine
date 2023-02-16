@@ -60,8 +60,8 @@ hashtable_t* indexLoad(char* indexnm) {
 
                 // Allocate memory on heap for word and copy from buffer
                 word = malloc((lengthCounter + 1) * sizeof(char));
-                strcpy(buffer, word);
-                
+                strcpy(word, buffer);
+								
                // Create queue for wordQueue_t object
                 queue = qopen();
 
@@ -142,7 +142,7 @@ hashtable_t* indexLoad(char* indexnm) {
 static void printWordToFile(void* elementp) {
     wordQueue_t* wq = (wordQueue_t*) elementp;
     fprintf(outputFile, "%s", wq->word);
-    qapply(wq->documentQueue, printQueueToFile);
+		qapply(wq->documentQueue, printQueueToFile);
     fprintf(outputFile, "\n");
 }
 
