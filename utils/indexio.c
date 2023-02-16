@@ -136,6 +136,7 @@ hashtable_t* indexLoad(char* indexnm) {
             }
         }
     }
+		fclose(inputFile);
     return index;
 }
 
