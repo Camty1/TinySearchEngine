@@ -83,7 +83,39 @@ int main(int argc, char* argv[]) {
         happly(index2, removeWordQueue);
         hclose(index2);
         hclose(index);
-    }
+    } else if (argc == 3) {
+			char* dirnm = argv[1];
+			char* indexnm = argv[2];
+			char filepath[100];
+			FILE* file;
+			
+			int i = 1;
+			sprintf(filepath, "%s/%d", dirnm, i);
+
+			hashtable_t* index = hopen(HASH_SIZE);
+			// Parse terminal input
+			// Loop through documents
+			while ((file = fopen(filepath, "r"))) {
+				fclose(file);
+				indexPage(index, i, dirnm);
+				i++;
+				sprintf(filepath, "%s/%d", dirnm, i);
+			}
+			// Get total number of words
+			happly(index, sumWords);
+			printf("%d\n", total_word_count);
+			indexSave(index, indexnm);
+			
+			// Test loading index file
+			hashtable_t* index2 = indexLoad(indexnm);
+			happly(index2, printElement);
+			
+			// Memory management
+			happly(index, removeWordQueue);
+			happly(index2, removeWordQueue);
+			hclose(index2);
+			hclose(index);
+		}
     
     // OLD STUFF -- KEEPING HERE JUST IN CASE
 
@@ -191,9 +223,9 @@ static void indexPage(hashtable_t* index, int document, char* dirName) {
     
     // Load in webpage 
 	webpage_t *webpage = pageload(document, dirName);
-
-    // Go through every word on webpage 
-    while ((pos = webpage_getNextWord(webpage, pos, &word)) > 0) {
+	
+	// Go through every word on webpage 
+	while ((pos = webpage_getNextWord(webpage, pos, &word)) > 0) {
         int res = normalizeWord(word, strlen(word));
         if (res == 0) {
             wordQueue_t* hashSearch = hsearch(index, wordQueueMatch, word, strlen(word));
