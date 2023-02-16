@@ -20,12 +20,21 @@
 int main(void) {
 	webpage_t *page_1;
 	webpage_t *page_2;
+	
 	page_1 = pageload(1, "../pages");
 	pagesave(page_1, 100, "../pages");
 	page_2 = pageload(100, "../pages");
-	printf("page 1: %s\n", webpage_getHTML(page_1));
-	printf("-----------------------------------------------\n");
-	printf("page 2: %s\n", webpage_getHTML(page_2));
 
-	return 0;
+	char* html1 = webpage_getHTML(page_1);
+	char* html2 = webpage_getHTML(page_2);
+
+	if (strcmp(html1, html2) == 0)
+		printf("initial pageio test passed. page save and page loaded match\n");
+	else {
+		printf("initial pageio test FAILED\n");
+		exit(EXIT_FAILURE);
+	}
+	
+
+	exit(EXIT_SUCCESS);
 }
