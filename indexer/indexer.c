@@ -45,6 +45,7 @@ static bool wordQueueMatch(void* elementp, const void* keyp);
 static void removeWords(void* elementp);
 static void calculate_total(void* elementp);
 static void printElement(void* elementp);
+static void printElementHashWords(void* elementp);
 static int normalizeWord(char* word, int word_len);
 static bool matchDocumentIds(void* elementp, const void* keyp);
 static void removeDocCount(void *elementp);
@@ -56,9 +57,10 @@ static void printQueueElement(void* elementp);
 static void closeIndex(hashtable_t* index);
 static hashtable_t* save_index_load_index(int document_id);
 static hashtable_t* index_all_pages(char* dirnm, char* indexnm);
-static int hash_words(webpage_t* webpage);
+static void hash_words(webpage_t* webpage);
 
 int main(int argc, char* argv[]) {
+	
 	// step 2: scan one page and normalize words
 	int pos = 0;
 	char *word;
@@ -71,6 +73,11 @@ int main(int argc, char* argv[]) {
 	}
 	webpage_delete(webpage);
 
+	// step 3: hash table of words
+	webpage_t* webpage2 = pageload(1, "../pages");
+	hash_words(webpage2);
+	webpage_delete(webpage2);
+	
 	// steps 5 & 6: scan multiple documents and save/load index 
 	if (argc == 2) {
 		// Parse terminal input
@@ -208,6 +215,42 @@ int main(int argc, char* argv[]) {
 	return 0;
 }
 
+static void hash_words(webpage_t* webpage) {
+	int pos = 0;
+	char *word;
+	hashtable_t* index = hopen(HASH_SIZE);
+  while ((pos = webpage_getNextWord(webpage, pos, &word)) > 0) {
+		int res = normalizeWord(word, strlen(word));
+		
+		if (res == 0) {
+			wordCount_t* result = (wordCount_t*)hsearch(index, wordMatch, word, strlen(word));
+			if (result != NULL) {
+				result -> count = result -> count + 1;
+				free(word);
+			}
+			else {
+				wordCount_t* new_wordcount = (wordCount_t*)malloc(sizeof(wordCount_t));
+				new_wordcount -> word = word;
+				new_wordcount -> count = 1;
+				int hashRes = hput(index, new_wordcount, word, strlen(word));
+				if (hashRes != 0)
+					printf("error in hashing words\n");
+				
+			}
+		}
+		else {
+			free(word);
+		}
+	}
+	happly(index, calculate_total);
+	printf("total words in hash table containing words and counts is: %d\n", total_word_count);
+	happly(index, printElementHashWords);
+	happly(index, removeWords);
+	hclose(index);
+
+	
+}
+
 static hashtable_t* index_all_pages(char* dirnm, char* indexnm) {
 			char filepath[100];
 			FILE* file;
@@ -279,7 +322,7 @@ static void indexPage(hashtable_t* index, int document, char* dirName) {
 				docWordCount_t* newCount = malloc(sizeof(docWordCount_t));
 				newCount->documentId = document;
 				newCount->count = 1;
-                res = qput(queue, newCount);
+				res = qput(queue, newCount);
                 hput(index, docQueue, word, strlen(word));
 			}
 			
@@ -372,6 +415,11 @@ static void printElement(void* elementp) {
     printf("%s", entry->word);
     qapply(entry->documentQueue, printQueueElement);
     printf("\n");
+}
+
+static void printElementHashWords(void* elementp) {
+	wordCount_t* entry = (wordCount_t*) elementp;
+	printf("%s\n", entry -> word);
 }
 
 static void printQueueElement(void* elementp) {
