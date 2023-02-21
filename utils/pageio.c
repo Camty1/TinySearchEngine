@@ -66,16 +66,16 @@ webpage_t* pageload(int id, char* dirnm) {
     }
     
     // Allocate memory for html
-    char* html = (char*) malloc(html_len * sizeof(char));
+    char* html = (char*) calloc((html_len+1), sizeof(char));
     
     // Create format string for fscanf
     char formatString[30];
-    sprintf(formatString, "%c%d%c", '%', html_len-1, 'c');
+    sprintf(formatString, "%c%d%c", '%', html_len, 'c');
 		// printf("%s\n",formatString); 
     // Read from file
     scan_result = fscanf(read_file, formatString, html);
 
-		html[html_len-1] = '\0';
+		html[html_len] = '\0';
 
     if (scan_result == 0) {
         printf("Error reading html\n");

@@ -60,34 +60,48 @@ static hashtable_t* index_all_pages(char* dirnm, char* indexnm);
 static void hash_words(webpage_t* webpage);
 
 int main(int argc, char* argv[]) {
-	
-	// step 2: scan one page and normalize words
-	int pos = 0;
-	char *word;
-	webpage_t *webpage = pageload(1, "../pages");
-	while ((pos = webpage_getNextWord(webpage, pos, &word)) > 0) {
-		int res = normalizeWord(word, strlen(word));
-		if (res == 0) 
-			printf("%s\n", word);
-		free(word);
+	if (argc == 1) {
+		// step 1: test saving and loading a page
+		webpage_t* page_1;
+		webpage_t* page_2;
+		page_1 = pageload(1, "../pages");
+		pagesave(page_1, 1000, "../pages");
+		page_2 = pageload(1000, "../pages");
+		char* html1 = webpage_getHTML(page_1);
+		char* html2 = webpage_getHTML(page_2);
+		int same = strcmp(html1, html2);
+		if (same == 0)
+			printf("html1 and html2 are the same.\n");
+		webpage_delete(page_1);
+		webpage_delete(page_2);
+		
+		// step 2: scan one page and normalize words
+		int pos = 0;
+		char *word;
+		webpage_t *webpage = pageload(1, "../pages");
+		while ((pos = webpage_getNextWord(webpage, pos, &word)) > 0) {
+			int res = normalizeWord(word, strlen(word));
+			if (res == 0) 
+				printf("%s\n", word);
+			free(word);
+		}
+		webpage_delete(webpage);
+		
+		// step 3: hash table of words
+		webpage_t* webpage2 = pageload(1, "../pages");
+		hash_words(webpage2);
+		webpage_delete(webpage2);
+		
+		// step 4: queue of documents
+		hashtable_t* index3 = hopen(HASH_SIZE);
+		indexPage(index3, 1, "../pages");
+		total_word_count = 0;
+		happly(index3, sumWords);
+		printf("total words using queue of documents: %d\n", total_word_count);
+		closeIndex(index3);	
 	}
-	webpage_delete(webpage);
-
-	// step 3: hash table of words
-	webpage_t* webpage2 = pageload(1, "../pages");
-	hash_words(webpage2);
-	webpage_delete(webpage2);
-
-	// step 4: queue of documents
-	hashtable_t* index3 = hopen(HASH_SIZE);
-	indexPage(index3, 1, "../pages");
-	total_word_count = 0;
-	happly(index3, sumWords);
-	printf("total words using queue of documents: %d\n", total_word_count);
-	closeIndex(index3);
-	
 	// steps 5 & 6: scan multiple documents and save/load index 
-	if (argc == 2) {
+	else if (argc == 2) {
 		// Parse terminal input
 		char* extra;
 		int document = strtol(argv[1], &extra, 10);
