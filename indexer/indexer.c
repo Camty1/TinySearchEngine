@@ -77,6 +77,14 @@ int main(int argc, char* argv[]) {
 	webpage_t* webpage2 = pageload(1, "../pages");
 	hash_words(webpage2);
 	webpage_delete(webpage2);
+
+	// step 4: queue of documents
+	hashtable_t* index3 = hopen(HASH_SIZE);
+	indexPage(index3, 1, "../pages");
+	total_word_count = 0;
+	happly(index3, sumWords);
+	printf("total words using queue of documents: %d\n", total_word_count);
+	closeIndex(index3);
 	
 	// steps 5 & 6: scan multiple documents and save/load index 
 	if (argc == 2) {
@@ -115,103 +123,6 @@ int main(int argc, char* argv[]) {
 		closeIndex(index2);
 	}
   
-    // OLD STUFF -- KEEPING HERE JUST IN CASE
-
-    //happly(index, printElement);
-    //FILE* output;
-
-    //output = fopen("indexerOut", "w");
-		/*
-	while ((pos = webpage_getNextWord(webpage, pos, &word)) > 0) {
-        int res = NormalizeWord(word, strlen(word));
-		if (res == 0) 
-            fprintf(output, "%s\n", word);
-		
-        free(word);
-	}
-
-    fclose(output);
-		*/
-    /*
-    while ((pos = webpage_getNextWord(webpage, pos, &word)) > 0) {
-        int res = normalizeWord(word, strlen(word));
-        if (res == 0) {
-		    wordCount_t* result = (wordCount_t*) hsearch(index, wordMatch, word, strlen(word)); 
-			// if word already in hash table, increment its count by 1
-			if (result != NULL) {
-				result -> count = result -> count + 1;
-                free(word);
-			}
-			// if word not in hash table, add it to hash table with count 1
-			else {
-			    wordCount_t* newWord = (wordCount_t*)malloc(sizeof(wordCount_t));
-			    newWord -> word = word;
-			    newWord -> count = 1;
-			    int hashRes = hput(index, newWord, word, strlen(word));
-			    if (hashRes != 0)
-			    	return -1;
-			}
-        }
-        else {
-            free(word);
-        }
-	}
-	fclose(output);
-    happly(index, print_element);
-
-	happly(index, calculate_total);
-	printf("total words: %d\n", total_word_count);
-	happly(index, removeWords);
-	hclose(index);
-    */
-    /*
-    while ((pos = webpage_getNextWord(webpage, pos, &word)) > 0) {
-        int res = normalizeWord(word, strlen(word));
-        if (res == 0) {
-            wordQueue_t* hashSearch = hsearch(index, wordQueueMatch, word, strlen(word));
-            
-            // Word isn't in index yet
-            if (hashSearch == NULL) {
-                // Create a word queue and initialize it
-                wordQueue_t* docQueue = (wordQueue_t*) malloc(sizeof(wordQueue_t));
-                docQueue->word = word;
-                queue_t* queue = qopen();
-                docQueue->documentQueue = queue;
-
-                // Put document in queue with word count 1
-                docWordCount_t* newCount = malloc(sizeof(docWordCount_t));
-                newCount->documentId = document;
-                newCount->count = 1;
-                res = qput(queue, newCount);
-                hput(index, docQueue, word, strlen(word));
-            }
-            
-            // Word is in index
-            else {
-                docWordCount_t* queueSearch = (docWordCount_t*) qsearch(hashSearch->documentQueue, matchDocumentIds, &document); 
-                // Document isn't in queue
-                if (queueSearch == NULL) {
-                    docWordCount_t* newCount = malloc(sizeof(docWordCount_t));
-                    newCount->documentId = document;
-                    newCount->count = 1;
-                    qput(hashSearch, newCount);
-                }
-                // Document is in queue
-                else {
-                    queueSearch->count++;
-                }
-                free(word);
-            }
-
-        }
-        // Word is malformed or too short, get it out of here
-        else {
-            free(word);
-        }
-    }
-    */
-    //happly(index, print_element);
-    //fclose(output);
 	return 0;
 }
 
