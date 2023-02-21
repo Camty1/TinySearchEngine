@@ -78,11 +78,12 @@ int main(int argc, char* argv[]) {
 		// step 2: scan one page and normalize words
 		int pos = 0;
 		char *word;
+		int res;
 		webpage_t *webpage = pageload(1, "../pages");
 		while ((pos = webpage_getNextWord(webpage, pos, &word)) > 0) {
-			int res = normalizeWord(word, strlen(word));
-			if (res == 0) 
+			if((res = normalizeWord(word, strlen(word)))==0) { 
 				printf("%s\n", word);
+			}
 			free(word);
 		}
 		webpage_delete(webpage);
@@ -137,7 +138,7 @@ int main(int argc, char* argv[]) {
 		closeIndex(index2);
 	}
   
-	return 0;
+	exit(EXIT_SUCCESS);
 }
 
 static void hash_words(webpage_t* webpage) {
