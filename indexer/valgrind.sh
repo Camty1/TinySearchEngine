@@ -1,7 +1,10 @@
 #!/bin/bash
 
 # valgrind for indexer file
-if [[ $# == 1 ]] 
+if [[ $# == 0 ]]
+then
+		valgrind --leak-check=full --show-leak-kinds=all ./indexer.bin $1 2> valgrind_err > valgrind_out
+elif [[ $# == 1 ]] 
 then
 		valgrind --leak-check=full --show-leak-kinds=all ./indexer.bin $1 2> valgrind_err > valgrind_out
 elif [[ $# == 2 ]]

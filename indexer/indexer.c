@@ -56,53 +56,58 @@ static void printQueueElement(void* elementp);
 static void closeIndex(hashtable_t* index);
 static hashtable_t* save_index_load_index(int document_id);
 static hashtable_t* index_all_pages(char* dirnm, char* indexnm);
-
+static int hash_words(webpage_t* webpage);
 
 int main(int argc, char* argv[]) {
-	  // steps 5 & 6
-    if (argc == 2) {
-        // Parse terminal input
-        char* extra;
-        int document = strtol(argv[1], &extra, 10);
-        
-				hashtable_t* index2;
-				index2 = save_index_load_index(document);
+	// step 2: scan one page and normalize words
+	int pos = 0;
+	char *word;
+	webpage_t *webpage = pageload(1, "../pages");
+	while ((pos = webpage_getNextWord(webpage, pos, &word)) > 0) {
+		int res = normalizeWord(word, strlen(word));
+		if (res == 0) 
+			printf("%s\n", word);
+		free(word);
+	}
+	webpage_delete(webpage);
 
-        // Get total number of words
-        happly(index2, sumWords);
-        printf("%d\n", total_word_count);
-				// prints elements
-        happly(index2, printElement);
-
-        // Memory management
-				closeIndex(index2);
-				
-    }
-		// step 7
-		else if (argc == 3) {
-			char* dirnm = argv[1];
-			char* indexnm = argv[2];
-
-			hashtable_t* index;
-			index = index_all_pages(dirnm, indexnm);
-			
-			// Get total number of words
-			happly(index, sumWords);
-			printf("%d\n", total_word_count);
-
-			// print elements for check
-			// happly(index, printElement);
-			
-			// Memory management
-			closeIndex(index);
-
-			total_word_count = 0;
-			hashtable_t* index2 = indexLoad(indexnm);
-			happly(index2, sumWords);
-			printf("%d\n", total_word_count);
-			closeIndex(index2);
-		}
-    
+	// steps 5 & 6: scan multiple documents and save/load index 
+	if (argc == 2) {
+		// Parse terminal input
+		char* extra;
+		int document = strtol(argv[1], &extra, 10);
+		hashtable_t* index2;
+		index2 = save_index_load_index(document);
+		// Get total number of words
+		happly(index2, sumWords);
+		printf("%d\n", total_word_count);
+		// prints elements
+		// happly(index2, printElement);
+		// Memory management
+		closeIndex(index2);
+	}
+	// step 7: run indexer based on passed in directory name and file
+	// name for saving
+	else if (argc == 3) {
+		char* dirnm = argv[1];
+		char* indexnm = argv[2];
+		hashtable_t* index;
+		index = index_all_pages(dirnm, indexnm);
+		// Get total number of words
+		happly(index, sumWords);
+		printf("%d\n", total_word_count);
+		// print elements for check
+		// happly(index, printElement);
+		// Memory management
+		closeIndex(index);
+		// check that loaded index has same number of words
+		total_word_count = 0;
+		hashtable_t* index2 = indexLoad(indexnm);
+		happly(index2, sumWords);
+		printf("%d\n", total_word_count);
+		closeIndex(index2);
+	}
+  
     // OLD STUFF -- KEEPING HERE JUST IN CASE
 
     //happly(index, printElement);
@@ -231,23 +236,21 @@ static void closeIndex(hashtable_t* index) {
 
 static hashtable_t* save_index_load_index(int document_id) {
 	
-				// Create index
-        hashtable_t* index = hopen(HASH_SIZE);
+	// Create index
+	hashtable_t* index = hopen(HASH_SIZE);
+	
+	// Loop through documents
+	for (int i = 1; i <= document_id; i++) {
+		indexPage(index, i, "../pages");
+	}
 
-        // Loop through documents
-        for (int i = 1; i <= document_id; i++) {
-            indexPage(index, i, "../pages");
-        }
-
-				indexSave(index, "testFile");
-
-        // Test loading index file
-        hashtable_t* index2 = indexLoad("testFile");
-
-				closeIndex(index);
-
-				return index2;
-
+	indexSave(index, "testFile");
+	
+	// Test loading index file
+	hashtable_t* index2 = indexLoad("testFile");
+	closeIndex(index);
+	return index2;
+				
 }
 
 static void indexPage(hashtable_t* index, int document, char* dirName) {
