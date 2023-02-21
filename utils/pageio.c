@@ -70,12 +70,12 @@ webpage_t* pageload(int id, char* dirnm) {
     
     // Create format string for fscanf
     char formatString[30];
-    sprintf(formatString, "%c%d%c", '%', html_len, 'c');
+    sprintf(formatString, "%c%d%c", '%', html_len-1, 'c');
 		// printf("%s\n",formatString); 
     // Read from file
     scan_result = fscanf(read_file, formatString, html);
 
-		html[html_len] = '\0';
+		html[html_len-1] = '\0';
 
     if (scan_result == 0) {
         printf("Error reading html\n");
