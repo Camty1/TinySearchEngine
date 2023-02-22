@@ -36,13 +36,14 @@ static int normalizeWord(char *word, int word_len);
 
 int main(int argc, char* argv[]) {
 	bool running = true;
-
 	while (running) {
 		char search_query[MAX_QUERY];
 		char* query_word;
 		bool query_valid = true;
 		printf("> ");
 		scanf("%[^\n]s", search_query);
+
+
 		query_word = strtok(search_query, " ");
 		queue_t* query_q = qopen();
 		while (query_word != NULL) {
@@ -60,6 +61,11 @@ int main(int argc, char* argv[]) {
 		} else {
 			printf("[invalid query]\n");
 		}
+		// flushes the standard input to allow for new query to be entered
+		int c;
+		while ((c = getchar()) != '\n' && c != EOF);
+		
+		
 	}
 	exit(EXIT_SUCCESS);
 }
