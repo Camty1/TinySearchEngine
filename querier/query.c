@@ -63,7 +63,12 @@ int main(int argc, char* argv[]) {
 		}
 		// flushes the standard input to allow for new query to be entered
 		int c;
-		while ((c = getchar()) != '\n' && c != EOF);
+		while ((c = getchar()) != '\n') {
+			if (c == EOF) {
+				running = false;
+				break;
+			}
+		}
 		
 		
 	}
