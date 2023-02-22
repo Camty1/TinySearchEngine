@@ -41,37 +41,36 @@ int main(int argc, char* argv[]) {
 		char* query_word;
 		bool query_valid = true;
 		printf("> ");
-		scanf("%[^\n]s", search_query);
+		if (scanf("%[^\n]s", search_query) != EOF) {
 
-
-		query_word = strtok(search_query, " ");
-		queue_t* query_q = qopen();
-		while (query_word != NULL) {
-			if (normalizeWord(query_word, strlen(query_word)) == 0) {
-				qput(query_q, query_word);
+			query_word = strtok(search_query, " ");
+			queue_t* query_q = qopen();
+			while (query_word != NULL) {
+				if (normalizeWord(query_word, strlen(query_word)) == 0) {
+					qput(query_q, query_word);
+				} else {
+					query_valid = false;
+					break;
+				}
+				query_word = strtok(NULL, " ");
+			}
+			if (query_valid) {
+				qapply(query_q, printQueryWord);
+				printf("\n");
 			} else {
-				query_valid = false;
-				break;
+				printf("[invalid query]\n");
 			}
-			query_word = strtok(NULL, " ");
+			// flushes the standard input to allow for new query to be entered
+			int c;
+			while ((c = getchar()) != '\n');
+			
 		}
-		if (query_valid) {
-			qapply(query_q, printQueryWord);
+		else {
 			printf("\n");
-		} else {
-			printf("[invalid query]\n");
+			running = false;
 		}
-		// flushes the standard input to allow for new query to be entered
-		int c;
-		while ((c = getchar()) != '\n') {
-			if (c == EOF) {
-				running = false;
-				break;
-			}
-		}
-		
-		
 	}
+	
 	exit(EXIT_SUCCESS);
 }
 
