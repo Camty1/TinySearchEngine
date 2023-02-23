@@ -27,7 +27,7 @@
 
 static void printQueryWord(void* elementp);
 static int normalizeWord(char *word, int word_len);
-static int rankDocument(queue_t* queries, hashtable_t* index, int docId);
+static int rankDocument(queue_t* queries, hashtable_t* index, int docId, bool step2);
 static int getOccurence(hashtable_t* index, char* word, int docId);
 static bool compareId(void* elementp, const void* keyp);
 static bool compareWord(void* elementp, const void* keyp);
@@ -35,7 +35,7 @@ static void getDocIDs(void* elementp);
 static void idFromQueue(void* elementp);
 static bool matchingIDs(void* elementp, const void* keyp);
 static void printDocs(void* elementp);
-static int rankNDocuments(queue_t* query_q, hashtable_t* index);
+static queue_t* rankNDocuments(queue_t* query_q, hashtable_t* index);
 
 queue_t* docIDs;
 
@@ -82,21 +82,28 @@ static bool matchingIDs(void* elementp, const void* keyp) {
 	return (*queueID == *val);
 }
 
+
 static void printDocs(void* elementp) {
 	int* doc = (int*)elementp;
-	printf("doc id: %d\n", *doc);
+	printf("%d ", *doc);
+}
+
+static void printDocURL(int docID) {
+	char buffer[100];
+	snprintf(buffer, 100, "../pages/%d", docID);
+	FILE* inputFile = fopen(buffer, "r");
+	char url[1000];
+	fgets(url, 1000, inputFile);
+	fclose(inputFile);
+	printf("%s", url);
 }
 
 	
 int main(int argc, char* argv[]) {
     // Load in index
     hashtable_t* index = indexLoad("../indexer/step2");
-		/*docIDs = qopen();
-		qapply(docIDs, printDocs);
-		happly(index, getDocIDs);
-		qapply(docIDs, printDocs);*/
 		
-	bool running = true;
+		bool running = true;
 	
     // Query prompt loop
     while (running) {
@@ -131,8 +138,20 @@ int main(int argc, char* argv[]) {
 			if (query_valid) {
 				qapply(query_q, printQueryWord);
 				printf("\n");
-			  int i = rankNDocuments(query_q, index);
-				//              int rank = rankDocument(query_q, index, 1); // Step 2
+			  queue_t* intersection;
+				intersection = rankNDocuments(query_q, index);
+
+				docWordCount_t* doc;
+				int* doc_id;
+				int rank;
+				char* url;
+				while ((doc_id = (int*) qget(intersection)) != NULL) {
+					rank = rankDocument(query_q, index, *doc_id, false);
+					printf("rank: %d, ", rank);
+					printf("doc: %d, ", *doc_id);
+				  printDocURL(*doc_id);
+				}
+				//				int rank = rankDocument(query_q, index, 1, true); // Step 2
 			}
 
             else {
@@ -152,7 +171,7 @@ int main(int argc, char* argv[]) {
 	exit(EXIT_SUCCESS);
 }
 
-static int rankNDocuments(queue_t* query_q, hashtable_t* index) {
+static queue_t* rankNDocuments(queue_t* query_q, hashtable_t* index) {
 
 	queue_t* copy_query_q = qopen();
 	queue_t* copy_doc_q = qopen();
@@ -177,6 +196,7 @@ static int rankNDocuments(queue_t* query_q, hashtable_t* index) {
 				*doc_id = doc->documentId;
 				qput(intersection, doc_id);
 			}
+			qconcat(doc_q, copy_doc_q);
 			is_first_word = false;
 		}
 		
@@ -193,9 +213,9 @@ static int rankNDocuments(queue_t* query_q, hashtable_t* index) {
 		}
 	}
 
-	qapply(intersection, printDocs);
-	
-	return 0;
+	qconcat(query_q, copy_query_q);
+
+	return intersection;
 		
 }
 
@@ -225,14 +245,16 @@ static void printQueryWord(void* elementp) {
 	printf("%s ", query_word);
 }
 
-static int rankDocument(queue_t* queries, hashtable_t* index, int docId) {
+
+static int rankDocument(queue_t* queries, hashtable_t* index, int docId, bool step2) {
     // Variable initialization
     char* word;
     int rank = INT_MAX;
-
+		//		qapply(queries, printQueryWord);
+		queue_t* copy_queries = qopen();
     // Go through words in query queue
     while ((word = (char*) qget(queries)) != NULL) {
-
+			qput(copy_queries, word);
         // These words should be ignored
         if (strlen(word) < 3 || strcmp(word, "and") == 0 || strcmp(word, "or") == 0) {
             
@@ -241,7 +263,8 @@ static int rankDocument(queue_t* queries, hashtable_t* index, int docId) {
         else {
             // Get number of occurences in index for a given document
             int occurence = getOccurence(index, word, docId);
-            printf("%s:%d ", word, occurence);
+						if (step2)
+							printf("%s:%d ", word, occurence);
 
             // Tracking minimum occurence for rank
             if (occurence < rank) {
@@ -249,16 +272,20 @@ static int rankDocument(queue_t* queries, hashtable_t* index, int docId) {
             }
         }
     }
+		qconcat(queries, copy_queries);
     // At least one word was valid and was given an occurence
     if (rank != INT_MAX) {
+			if (step2)
         printf("-- %d\n", rank);
-        return rank;
+			return rank;
     }
     // Either query queue was empty or no valid words
     else {
+			if (step2)
         printf("-- 0\n");
-        return 0;
+			return 0;
     }
+		
 }
 
 static int getOccurence(hashtable_t* index, char* word, int docId) {
