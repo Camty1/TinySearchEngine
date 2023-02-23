@@ -23,6 +23,7 @@
 #include <indexio.h>
 
 #define MAX_QUERY 200
+#define MAX_DOCS 1000
 
 static void printQueryWord(void* elementp);
 static int normalizeWord(char *word, int word_len);
@@ -30,6 +31,14 @@ static int rankDocument(queue_t* queries, hashtable_t* index, int docId);
 static int getOccurence(hashtable_t* index, char* word, int docId);
 static bool compareId(void* elementp, const void* keyp);
 static bool compareWord(void* elementp, const void* keyp);
+static void getDocIDs(void* elementp);
+static void idFromQueue(void* elementp);
+static bool matchingIDs(void* elementp, const void* keyp);
+static void printDocs(void* elementp);
+static int rankNDocuments(queue_t* query_q, hashtable_t* index);
+
+queue_t* docIDs;
+
 
 typedef struct {
     char* word;
@@ -41,17 +50,52 @@ typedef struct {
     int count;
 } docWordCount_t;
 
-/* if (strcmp(query_word, "^D")) {
-	running = false;
-	break;
- } else 
-	
-*/
 
+static void getDocIDs(void* elementp) {
+	wordQueue_t* wordQueue = (wordQueue_t*)elementp;
+	char* word = wordQueue->word;
+	//	printf("%s\n", word);
+	queue_t* docQueue = wordQueue->documentQueue;
+	qapply(docQueue, idFromQueue);
+}
+
+static void idFromQueue(void* elementp) {
+	docWordCount_t* entry = (docWordCount_t*)elementp;
+	int docId = entry->documentId;
+	int* docIDp = (int*)malloc(sizeof(int*));
+	docIDp = &docId;
+	//*docIDp = docId;
+	int* result = (int*)qsearch(docIDs, matchingIDs, docIDp);
+		if (result == NULL) {
+		qput(docIDs, docIDp);
+		
+	}
+	
+	//qapply(docIDs, printDocs);
+	//	printf("\n\n");
+	
+}
+
+static bool matchingIDs(void* elementp, const void* keyp) {
+	int* queueID = (int*)elementp;
+	int* val = (int*)keyp;
+	return (*queueID == *val);
+}
+
+static void printDocs(void* elementp) {
+	int* doc = (int*)elementp;
+	printf("doc id: %d\n", *doc);
+}
+
+	
 int main(int argc, char* argv[]) {
     // Load in index
-    hashtable_t* index = indexLoad("step2");
-
+    hashtable_t* index = indexLoad("../indexer/step2");
+		/*docIDs = qopen();
+		qapply(docIDs, printDocs);
+		happly(index, getDocIDs);
+		qapply(docIDs, printDocs);*/
+		
 	bool running = true;
 	
     // Query prompt loop
@@ -87,7 +131,8 @@ int main(int argc, char* argv[]) {
 			if (query_valid) {
 				qapply(query_q, printQueryWord);
 				printf("\n");
-                int rank = rankDocument(query_q, index, 1); // Step 2
+			  int i = rankNDocuments(query_q, index);
+				//              int rank = rankDocument(query_q, index, 1); // Step 2
 			}
 
             else {
@@ -103,10 +148,56 @@ int main(int argc, char* argv[]) {
 			running = false;
 		}
 	}
-	
+		
 	exit(EXIT_SUCCESS);
 }
 
+static int rankNDocuments(queue_t* query_q, hashtable_t* index) {
+
+	queue_t* copy_query_q = qopen();
+	queue_t* copy_doc_q = qopen();
+	bool is_first_word = true;
+	queue_t* intersection = qopen();
+	char* word;
+	docWordCount_t* doc;
+	int* doc_id;
+	
+	while ((word = (char*) qget(query_q)) != NULL) {
+		qput(copy_query_q, word);
+
+		wordQueue_t* word_q = hsearch(index, compareWord, word, strlen(word));
+		queue_t* doc_q = word_q->documentQueue;
+
+		if (is_first_word) {
+			
+			while((doc = (docWordCount_t*)qget(doc_q)) != NULL) {
+				qput(copy_doc_q, doc);
+				
+				int* doc_id = (int*)malloc(sizeof(int*));
+				*doc_id = doc->documentId;
+				qput(intersection, doc_id);
+			}
+			is_first_word = false;
+		}
+		
+		else {
+			queue_t* copy_intersection = qopen();
+			while ((doc_id = (int*)qget(intersection)) != NULL) {
+				
+				docWordCount_t* search_result = qsearch(doc_q, compareId, doc_id);
+				if (search_result != NULL) {
+					qput(copy_intersection, doc_id);
+				}
+			}
+			qconcat(intersection, copy_intersection);
+		}
+	}
+
+	qapply(intersection, printDocs);
+	
+	return 0;
+		
+}
 
 static int normalizeWord(char *word, int word_len) {
 
