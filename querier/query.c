@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
 		// do tests for valgrind.sh
 		if (argc == 2) {
 			char sample_query[MAX_QUERY];
-			strcpy(sample_query, "good coding");
+			strcpy(sample_query, "coding and test bad good");
 			//strcpy(sample_query, "hello");
 			queue_t* query_q = qopen();
 			bool query_valid = query_to_queue(query_q, sample_query);
@@ -192,7 +192,7 @@ static queue_t* documentIntersection(queue_t* query_q, hashtable_t* index) {
 	// creates copies of queues to deal with removing items without
 	// losing information
 	queue_t* copy_query_q = qopen();
-	queue_t* copy_doc_q = qopen();
+
 	// different behavior if the word is the first in the query or not
 	bool is_first_word = true;
 	// queue to store the intersection of document IDs from all words in
@@ -216,6 +216,7 @@ static queue_t* documentIntersection(queue_t* query_q, hashtable_t* index) {
 				// if the word is first in query, find all documents that the
 				// word is in and add them to the queue intersection
 				if (is_first_word) {
+					queue_t* copy_doc_q = qopen();
 					while((doc = (docWordCount_t*)qget(doc_q)) != NULL) {
 						qput(copy_doc_q, doc);
 						int* doc_id = (int*)malloc(sizeof(int*));
@@ -232,25 +233,25 @@ static queue_t* documentIntersection(queue_t* query_q, hashtable_t* index) {
 				// exists in each document; if it does, add to the queue
 				// containing updated intersection, otherwise do nothing
 				else {
-				queue_t* copy_intersection = qopen();
-				while ((doc_id = (int*)qget(intersection)) != NULL) {
-					docWordCount_t* search_result = qsearch(doc_q, compareId, doc_id);
-					if (search_result != NULL) {
-						qput(copy_intersection, doc_id);
+					queue_t* copy_intersection = qopen();
+					while ((doc_id = (int*)qget(intersection)) != NULL) {
+						docWordCount_t* search_result = qsearch(doc_q, compareId, doc_id);
+						if (search_result != NULL) {
+							qput(copy_intersection, doc_id);
+						}
+						else {
+							free(doc_id);
+						}
 					}
-					else {
-						free(doc_id);
-					}
-				}
-				// updates the queue intersection with the document IDs for
-				// which all words in the query thus far exist in
-				qconcat(intersection, copy_intersection);
+					// updates the queue intersection with the document IDs for
+					// which all words in the query thus far exist in
+					qconcat(intersection, copy_intersection);
 				}
 			}
 			else {
 				qclose(copy_query_q);
-				qapply(copy_doc_q, removeDocCount);
-				qclose(copy_doc_q);
+				//qapply(copy_doc_q, removeDocCount);
+				//qclose(copy_doc_q);
 				qapply(intersection, removeDocCount);
 				qclose(intersection);
 				return NULL;
