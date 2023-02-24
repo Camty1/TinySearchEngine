@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
 		// do tests for valgrind.sh
 		if (argc == 2) {
 			char sample_query[MAX_QUERY];
-			strcpy(sample_query, "coding and test bad good");
+			strcpy(sample_query, "good and coding ");
 			//strcpy(sample_query, "hello");
 			queue_t* query_q = qopen();
 			bool query_valid = query_to_queue(query_q, sample_query);
@@ -142,20 +142,52 @@ static void printRanks(queue_t* query_q, hashtable_t* index, queue_t* intersecti
 static bool query_to_queue(queue_t* query_q, char* search_query) {
 	// Go through words in query
 	bool query_valid = true;
+	bool first_word = true;
+	bool curr_reserved = false;
+	bool prev_reserved = false;
 	char* query_word;
+	char* prev_word;
 	query_word = strtok(search_query, " ");
 	while (query_word != NULL) {
 		// Make sure word is valid
 		if (normalizeWord(query_word, strlen(query_word)) == 0) {
-			// Put word in query queue
-			qput(query_q, query_word);
-		}
-		else {
+			// check if current word is and | or;
+			curr_reserved = strcmp(query_word, "and") == 0 || strcmp(query_word, "or") == 0;
+			// if first word
+			if (first_word) {
+				// if word not and | or
+				if (!curr_reserved) {
+					// Put word in query queue
+					qput(query_q, query_word);
+				} else {
+					query_valid = false;
+					break;
+				}
+				first_word = false;
+				// not first word
+			} else {
+				// check if previous word was and | or
+				prev_reserved = strcmp(prev_word, "and") == 0 || strcmp(prev_word, "or") == 0;
+				// if only one and | or in previous & current
+				if (!prev_reserved || !curr_reserved) {
+					// Put word in query queue
+					qput(query_q, query_word);
+					// both prev and curr words are and | or
+				} else {
+					query_valid = false;
+					break;
+				}
+			}
+			// normalize word failed
+		} else {
 			query_valid = false;
 			break;
 		}
+		// store previous word
+		prev_word = query_word;
 		query_word = strtok(NULL, " ");
 	}
+	if (curr_reserved) query_valid = false;
 	return query_valid;
 }
 
@@ -203,7 +235,12 @@ static queue_t* documentIntersection(queue_t* query_q, hashtable_t* index) {
 	int* doc_id;
 	// gets words in query queue one by one (each time removes word)
 	while ((word = (char*) qget(query_q)) != NULL) {
-		if (strlen(word) > 2 && strcmp(word, "and") != 0 && strcmp(word, "or") != 0) {
+		// if word is reserved put it back in the query_q without getting intersections
+		if (strcmp(word, "and") == 0 || strcmp(word, "or") == 0) {
+			// put reserved word in copy of queue to save for later
+			qput(copy_query_q, word);
+			// otherwise if word is longer than 2 letters
+		} else if (strlen(word) > 2) {
 			// put word in copy of queue to save for later
 			qput(copy_query_q, word);
 			// searches the index for the given word in query
@@ -292,45 +329,73 @@ static void printQueryWord(void* elementp) {
 
 
 static int rankDocument(queue_t* queries, hashtable_t* index, int docId, bool step2) {
-    // Variable initialization
-    char* word;
-    int rank = INT_MAX;
-		queue_t* copy_queries = qopen();
-    // Go through words in query queue
-    while ((word = (char*) qget(queries)) != NULL) {
-			qput(copy_queries, word);
-        // These words should be ignored
-			/* if (strlen(word) < 3 || strcmp(word, "and") == 0 || strcmp(word, "or") == 0) {
-				
-				 } */
-			
-			//	else {
+	// Variable initialization
+	char* word;
+	bool and = false;
+	bool or = false;
+	int occurences[MAX_QUERY];
+	int i = 0;
+	int occurence;
+	int temp_rank = INT_MAX;
+	int final_rank = 0;
+	queue_t* copy_queries = qopen();
+	// Go through words in query queue
+	while ((word = (char*) qget(queries)) != NULL) {
+		if (or && and) {
+			printf("invalid query!\n");
+		}
+		qput(copy_queries, word);
+		// These words should be ignored
+		if (strcmp(word, "or") == 0) {
+			or = true;
+			//			printf("word: %s accumulated occurances: %d\n", word, temp_rank);
+			occurences[i] = temp_rank;
+			i++;
+			temp_rank = INT_MAX;
+		} else if (strcmp(word, "and") == 0) {
+			and = true;
+		}
+		else {
+			or = false;
+			and = false;
 			// Get number of occurences in index for a given document
-			int occurence = getOccurence(index, word, docId);
+			
+			occurence = getOccurence(index, word, docId);
 			if (step2)
 				printf("%s:%d ", word, occurence);
-			
+
+			//			printf("word: %s accum occurance: %d\n", word, temp_rank);			
 			// Tracking minimum occurence for rank
-			if (occurence < rank) {
-				rank = occurence;
+			if (occurence < temp_rank) {
+				//				printf("word: %s occurance: %d\n", word, occurence);			
+				temp_rank = occurence;
 			}
+			
 		}
-    
-		
-		qconcat(queries, copy_queries);
-    // At least one word was valid and was given an occurence
-    if (rank != INT_MAX) {
-			if (step2)
-        printf("-- %d\n", rank);
-			return rank;
-    }
-    // Either query queue was empty or no valid words
-    else {
-			if (step2)
-        printf("-- 0\n");
-			return 0;
-    }
-		
+	}
+	//	printf("word: %s accumulated occurances: %d\n", word, temp_rank);
+	occurences[i] = temp_rank;
+	for(int j = 0; j<i+1; j++) {
+		final_rank = final_rank + occurences[j];
+		// printf("rank: %d\n", final_rank);
+	}
+	
+  
+	
+	qconcat(queries, copy_queries);
+	// At least one word was valid and was given an occurence
+	if (final_rank != INT_MAX) {
+		if (step2)
+			printf("-- %d\n", final_rank);
+		return final_rank;
+	}
+	// Either query queue was empty or no valid words
+	else {
+		if (step2)
+			printf("-- 0\n");
+		return 0;
+	}
+	
 }
 
 static int getOccurence(hashtable_t* index, char* word, int docId) {
