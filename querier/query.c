@@ -52,7 +52,7 @@ typedef struct {
 
 int main(int argc, char* argv[]) {
     // Load in index
-    hashtable_t* index = indexLoad("../indexer/step2");
+    hashtable_t* index = indexLoad("../indexer/testFile");
 
 		// do tests for valgrind.sh
 		if (argc == 2) {
@@ -203,34 +203,35 @@ static queue_t* documentIntersection(queue_t* query_q, hashtable_t* index) {
 	int* doc_id;
 	// gets words in query queue one by one (each time removes word)
 	while ((word = (char*) qget(query_q)) != NULL) {
-		// put word in copy of queue to save for later
-		qput(copy_query_q, word);
-		// searches the index for the given word in query
-		wordQueue_t* word_q = hsearch(index, compareWord, word, strlen(word));
-		// if the word is not in the index, return NULL since no documents
-		// exist that match query; otherwise, find all documents the word
-		// is in
-		if (word_q != NULL) {
-			queue_t* doc_q = word_q->documentQueue;
-			// if the word is first in query, find all documents that the
-			// word is in and add them to the queue intersection
-			if (is_first_word) {
-				while((doc = (docWordCount_t*)qget(doc_q)) != NULL) {
-					qput(copy_doc_q, doc);
-					int* doc_id = (int*)malloc(sizeof(int*));
-					*doc_id = doc->documentId;
-					qput(intersection, doc_id);
+		if (strlen(word) > 2 && strcmp(word, "and") != 0 && strcmp(word, "or") != 0) {
+			// put word in copy of queue to save for later
+			qput(copy_query_q, word);
+			// searches the index for the given word in query
+			wordQueue_t* word_q = hsearch(index, compareWord, word, strlen(word));
+			// if the word is not in the index, return NULL since no documents
+			// exist that match query; otherwise, find all documents the word
+			// is in
+			if (word_q != NULL) {
+				queue_t* doc_q = word_q->documentQueue;
+				// if the word is first in query, find all documents that the
+				// word is in and add them to the queue intersection
+				if (is_first_word) {
+					while((doc = (docWordCount_t*)qget(doc_q)) != NULL) {
+						qput(copy_doc_q, doc);
+						int* doc_id = (int*)malloc(sizeof(int*));
+						*doc_id = doc->documentId;
+						qput(intersection, doc_id);
+					}
+					// restores the document queue from the index and closes the
+					// copy queue
+					qconcat(doc_q, copy_doc_q);
+					is_first_word = false;
 				}
-				// restores the document queue from the index and closes the
-				// copy queue
-				qconcat(doc_q, copy_doc_q);
-				is_first_word = false;
-			}
-			// if word is not first in query, go through all documents
-			// existing in the intersection queue and check whether the word
-			// exists in each document; if it does, add to the queue
-			// containing updated intersection, otherwise do nothing
-			else {
+				// if word is not first in query, go through all documents
+				// existing in the intersection queue and check whether the word
+				// exists in each document; if it does, add to the queue
+				// containing updated intersection, otherwise do nothing
+				else {
 				queue_t* copy_intersection = qopen();
 				while ((doc_id = (int*)qget(intersection)) != NULL) {
 					docWordCount_t* search_result = qsearch(doc_q, compareId, doc_id);
@@ -244,15 +245,16 @@ static queue_t* documentIntersection(queue_t* query_q, hashtable_t* index) {
 				// updates the queue intersection with the document IDs for
 				// which all words in the query thus far exist in
 				qconcat(intersection, copy_intersection);
+				}
 			}
-		}
-		else {
-			qclose(copy_query_q);
-			qapply(copy_doc_q, removeDocCount);
-			qclose(copy_doc_q);
-			qapply(intersection, removeDocCount);
-			qclose(intersection);
-			return NULL;
+			else {
+				qclose(copy_query_q);
+				qapply(copy_doc_q, removeDocCount);
+				qclose(copy_doc_q);
+				qapply(intersection, removeDocCount);
+				qclose(intersection);
+				return NULL;
+			}
 		}
 	}
 	// restores the query queue for use in rank document function
@@ -297,23 +299,23 @@ static int rankDocument(queue_t* queries, hashtable_t* index, int docId, bool st
     while ((word = (char*) qget(queries)) != NULL) {
 			qput(copy_queries, word);
         // These words should be ignored
-        if (strlen(word) < 3 || strcmp(word, "and") == 0 || strcmp(word, "or") == 0) {
-            
-        }
-
-        else {
-            // Get number of occurences in index for a given document
-            int occurence = getOccurence(index, word, docId);
-						if (step2)
-							printf("%s:%d ", word, occurence);
-
-            // Tracking minimum occurence for rank
-            if (occurence < rank) {
-                rank = occurence;
-            }
-        }
-    }
-
+			/* if (strlen(word) < 3 || strcmp(word, "and") == 0 || strcmp(word, "or") == 0) {
+				
+				 } */
+			
+			//	else {
+			// Get number of occurences in index for a given document
+			int occurence = getOccurence(index, word, docId);
+			if (step2)
+				printf("%s:%d ", word, occurence);
+			
+			// Tracking minimum occurence for rank
+			if (occurence < rank) {
+				rank = occurence;
+			}
+		}
+    
+		
 		qconcat(queries, copy_queries);
     // At least one word was valid and was given an occurence
     if (rank != INT_MAX) {
