@@ -300,7 +300,7 @@ static queue_t* documentIntersection(queue_t* query_q, hashtable_t* index) {
 	// losing information
 	queue_t* copy_query_q = qopen();
 
-	// different behavior if the word is the first in the query or not
+	// different behavior if the word is the first in the set of "and" queries or not
 	bool is_first_word = true;
 	// queue to store the intersection of document IDs from all words in
 	// the query
@@ -311,10 +311,13 @@ static queue_t* documentIntersection(queue_t* query_q, hashtable_t* index) {
 	// gets words in query queue one by one (each time removes word)
 	while ((word = (char*) qget(query_q)) != NULL) {
 		// if word is reserved put it back in the query_q without getting intersections
-		if (strcmp(word, "and") == 0 || strcmp(word, "or") == 0) {
-			if (strcmp(word, "or") == 0) is_first_word = true;
+		if (strcmp(word, "or") == 0) {
+			// reset to do first word in set of "and" queries
+			is_first_word = true;
 			// put reserved word in copy of queue to save for later
 			qput(copy_query_q, word);
+		} else if (strcmp(word, "and") == 0) {
+			// do nothing
 			// otherwise if word is longer than 2 letters
 		} else if (strlen(word) > 2) {
 			// put word in copy of queue to save for later
