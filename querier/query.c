@@ -213,7 +213,8 @@ static bool query_to_queue(queue_t* query_q, char* search_query) {
 	bool prev_reserved = false;
 	char* query_word;
 	char* prev_word;
-	query_word = strtok(search_query, " ");
+	char delimit[]=" \t";
+	query_word = strtok(search_query, delimit);
 	while (query_word != NULL) {
 		// Make sure word is valid
 		if (normalizeWord(query_word, strlen(query_word)) == 0) {
@@ -251,7 +252,7 @@ static bool query_to_queue(queue_t* query_q, char* search_query) {
 		}
 		// store previous word
 		prev_word = query_word;
-		query_word = strtok(NULL, " ");
+		query_word = strtok(NULL, delimit);
 	}
 	if (curr_reserved)
 		query_valid = false;
