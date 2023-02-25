@@ -32,12 +32,12 @@ static int getOccurence(hashtable_t* index, char* word, int docId);
 static bool compareId(void* elementp, const void* keyp);
 static bool compareWord(void* elementp, const void* keyp);
 static queue_t* documentIntersection(queue_t* query_q, hashtable_t* index);
-static void printDocURL(int docID);
+static void printDocURL(int docID, char* pageDir);
 static void closeIndex(hashtable_t* index);
 static void removeWordQueue(void *elementp);
 static void removeDocCount(void *elementp);
 static bool query_to_queue(queue_t* query_q, char* search_query);
-static void printRanks(queue_t* query_q, hashtable_t* index, queue_t* intersection);
+static void printRanks(queue_t* query_q, hashtable_t* index, queue_t* intersection, char* pageDir);
 static void printDocIDs(void* elementp);
 
 typedef struct {
@@ -52,74 +52,131 @@ typedef struct {
 
 
 int main(int argc, char* argv[]) {
-    // Load in index
-    hashtable_t* index = indexLoad("../indexer/testFile");
 
-		// do tests for valgrind.sh
-		if (argc == 2) {
-			char sample_query[MAX_QUERY];
-			strcpy(sample_query, "good and coding ");
-			//strcpy(sample_query, "hello");
-			queue_t* query_q = qopen();
-			bool query_valid = query_to_queue(query_q, sample_query);
-			// Query is valid
-			if (query_valid) {
-				qapply(query_q, printQueryWord);
-				printf("\n");
-				queue_t* intersection;
-				intersection = documentIntersection(query_q, index);
-				printRanks(query_q, index, intersection);
-				qapply(intersection, removeDocCount);
-				qclose(intersection);
-			}
-			else {
-				printf("[invalid query]\n");
-			}
-			qclose(query_q);
+    if (argc != 3 && argc != 6) {
+        printf("usage: query <pageDir> <indexName> [-q]\nquery <pageDir> <indexName> -q <queryFile> <outputFile>\n");
+        exit(EXIT_FAILURE);
+    }
+    else {
+        char* pageDir = argv[1];
+        char* indexName = argv[2];
+        
+        // Load in index
+        hashtable_t* index = indexLoad(indexName);
+
+        if (argc == 3) {
+
+    		bool running = true;
+    		// Query prompt loop
+    		while (running) {
+    			char search_query[MAX_QUERY];
+    			printf("> ");
+    			// Get string from console
+    			if (scanf("%[^\n]s", search_query) != EOF) {		
+    				// Open query queue
+    				queue_t* query_q = qopen();
+    				bool query_valid = query_to_queue(query_q, search_query);
+	    			// Query is valid
+    				if (query_valid) {
+    					qapply(query_q, printQueryWord);
+    					printf("\n");
+	    				queue_t* intersection;
+	    				intersection = documentIntersection(query_q, index);
+	    				printRanks(query_q, index, intersection, pageDir);
+	    				qapply(intersection, removeDocCount);
+	    				qclose(intersection);
+	    				//				int rank = rankDocument(query_q, index, 1, true); // Step 2
+	    			}					
+	    			else {
+	    				printf("[invalid query]\n");
+	    			}
+	    			qclose(query_q);
+	    			// flushes the standard input to allow for new query to be entered
+	    			int c;
+	    			while ((c = getchar()) != '\n');
+	    		}
+	    		// EOF character entered - end program
+	    		else {
+	    			printf("\n");
+	    			running = false;
+	    		}
+    		}
+    	}
+        
+        else {
+
+        }
+        closeIndex(index);
+    }
+
+/*
+    hashtable_t* index = indexLoad("../indexer/testFile");
+	// do tests for valgrind.sh
+	if (argc == 2) {
+		char sample_query[MAX_QUERY];
+		strcpy(sample_query, "good and coding ");
+		//strcpy(sample_query, "hello");
+		queue_t* query_q = qopen();
+		bool query_valid = query_to_queue(query_q, sample_query);
+		// Query is valid
+		if (query_valid) {
+			qapply(query_q, printQueryWord);
+			printf("\n");
+			queue_t* intersection;
+			intersection = documentIntersection(query_q, index);
+			printRanks(query_q, index, intersection);
+			qapply(intersection, removeDocCount);
+			qclose(intersection);
 		}
 		else {
-			bool running = true;
-			// Query prompt loop
-			while (running) {
-				char search_query[MAX_QUERY];
-				printf("> ");
-				// Get string from console
-				if (scanf("%[^\n]s", search_query) != EOF) {		
-					// Open query queue
-					queue_t* query_q = qopen();
-					bool query_valid = query_to_queue(query_q, search_query);
-					// Query is valid
-					if (query_valid) {
-						qapply(query_q, printQueryWord);
-						printf("\n");
-						queue_t* intersection;
-						intersection = documentIntersection(query_q, index);
-						printRanks(query_q, index, intersection);
-						qapply(intersection, removeDocCount);
-						qclose(intersection);
-						//				int rank = rankDocument(query_q, index, 1, true); // Step 2
-					}					
-					else {
-						printf("[invalid query]\n");
-					}
-					qclose(query_q);
-					// flushes the standard input to allow for new query to be entered
-					int c;
-					while ((c = getchar()) != '\n');
-				}
-				// EOF character entered - end program
-				else {
+			printf("[invalid query]\n");
+		}
+	qclose(query_q);
+	}
+	else {
+		bool running = true;
+		// Query prompt loop
+		while (running) {
+			char search_query[MAX_QUERY];
+			printf("> ");
+			// Get string from console
+			if (scanf("%[^\n]s", search_query) != EOF) {		
+				// Open query queue
+				queue_t* query_q = qopen();
+				bool query_valid = query_to_queue(query_q, search_query);
+				// Query is valid
+				if (query_valid) {
+					qapply(query_q, printQueryWord);
 					printf("\n");
-					running = false;
+					queue_t* intersection;
+					intersection = documentIntersection(query_q, index);
+					printRanks(query_q, index, intersection);
+					qapply(intersection, removeDocCount);
+					qclose(intersection);
+					//				int rank = rankDocument(query_q, index, 1, true); // Step 2
+				}					
+				else {
+					printf("[invalid query]\n");
 				}
+				qclose(query_q);
+				// flushes the standard input to allow for new query to be entered
+				int c;
+				while ((c = getchar()) != '\n');
+			}
+			// EOF character entered - end program
+			else {
+				printf("\n");
+				running = false;
 			}
 		}
-		closeIndex(index);
-		exit(EXIT_SUCCESS);
+	}
+	closeIndex(index);
+    */
+	exit(EXIT_SUCCESS);
 }
 
 
-static void printRanks(queue_t* query_q, hashtable_t* index, queue_t* intersection) {
+static void printRanks(queue_t* query_q, hashtable_t* index, queue_t* intersection, char* pageDir) {
 	queue_t* copy_intersection = qopen();
 	int* first_doc_id = (int*)qget(intersection);
 	qput(copy_intersection, first_doc_id);
@@ -131,13 +188,13 @@ static void printRanks(queue_t* query_q, hashtable_t* index, queue_t* intersecti
 		rank = rankDocument(query_q, index, *first_doc_id, false);
 		printf("rank: %d, ", rank);
 		printf("doc: %d, ", *first_doc_id);
-		printDocURL(*first_doc_id);
+		printDocURL(*first_doc_id, pageDir);
 		while ((doc_id = (int*) qget(intersection)) != NULL) {
 			qput(copy_intersection, doc_id);
 			rank = rankDocument(query_q, index, *doc_id, false);
 			printf("rank: %d, ", rank);
 			printf("doc: %d, ", *doc_id);
-			printDocURL(*doc_id);
+			printDocURL(*doc_id, pageDir);
 		}
 	}
 	qconcat(intersection, copy_intersection);
@@ -221,9 +278,9 @@ static void removeDocCount(void *elementp) {
 }
 
 
-static void printDocURL(int docID) {
+static void printDocURL(int docID, char* pageDir) {
 	char buffer[100];
-	snprintf(buffer, 100, "../pages/%d", docID);
+	snprintf(buffer, 100, "%s/%d", pageDir, docID);
 	FILE* inputFile = fopen(buffer, "r");
 	char url[1000];
 	fgets(url, 1000, inputFile);
