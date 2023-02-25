@@ -29,6 +29,7 @@ static void printQueryWord(void* elementp);
 static int normalizeWord(char *word, int word_len);
 static int rankDocument(queue_t* queries, hashtable_t* index, int docId, bool step2);
 static int getOccurence(hashtable_t* index, char* word, int docId);
+static bool compareDocIDs(void* elementp, const void* keyp);
 static bool compareId(void* elementp, const void* keyp);
 static bool compareWord(void* elementp, const void* keyp);
 static queue_t* documentIntersection(queue_t* query_q, hashtable_t* index);
@@ -311,6 +312,7 @@ static queue_t* documentIntersection(queue_t* query_q, hashtable_t* index) {
 	while ((word = (char*) qget(query_q)) != NULL) {
 		// if word is reserved put it back in the query_q without getting intersections
 		if (strcmp(word, "and") == 0 || strcmp(word, "or") == 0) {
+			if (strcmp(word, "or") == 0) is_first_word = true;
 			// put reserved word in copy of queue to save for later
 			qput(copy_query_q, word);
 			// otherwise if word is longer than 2 letters
@@ -333,7 +335,11 @@ static queue_t* documentIntersection(queue_t* query_q, hashtable_t* index) {
 						int* doc_id = (int*)malloc(sizeof(int*));
 						*doc_id = doc->documentId;
 						//						printf("doc_id: %d\n",*doc_id); 
-						qput(intersection, doc_id);
+						if (qsearch(intersection, compareDocIDs, doc_id)) {
+							free(doc_id);
+						} else {
+							qput(intersection, doc_id);
+						}
 					}
 					// restores the document queue from the index and closes the
 					// copy queue
@@ -501,4 +507,11 @@ static bool compareId(void* elementp, const void* keyp) {
     docWordCount_t* wc = (docWordCount_t*) elementp;
     int* id = (int*) keyp;
     return (wc->documentId == *id);
+}
+
+// Compare ints document ids
+static bool compareDocIDs(void* elementp, const void* keyp) {
+    int* id = (int*) elementp;
+    int* key_id = (int*) keyp;
+    return (*key_id == *id);
 }
