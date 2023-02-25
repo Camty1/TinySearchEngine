@@ -67,13 +67,13 @@ int main(int argc, char* argv[]) {
         if (argc == 3) {
 
     		bool running = true;
+				char search_query[MAX_QUERY];
     		// Query prompt loop
     		while (running) {
-    			char search_query[MAX_QUERY];
     			printf("> ");
     			// Get string from console
-    			if (scanf("%[^\n]s", search_query) != EOF) {		
-    				// Open query queue
+    			if (scanf("%[^\n]s", search_query) != EOF) {
+						// Open query queue
     				queue_t* query_q = qopen();
     				bool query_valid = query_to_queue(query_q, search_query);
 	    			// Query is valid
@@ -91,6 +91,10 @@ int main(int argc, char* argv[]) {
 	    				printf("[invalid query]\n");
 	    			}
 	    			qclose(query_q);
+						// clears search query (beforehand, if hit return after a
+						// valid search would use the first word of previous
+						// query)
+						search_query[0] = '\0';
 	    			// flushes the standard input to allow for new query to be entered
 	    			int c;
 	    			while ((c = getchar()) != '\n');
@@ -249,7 +253,8 @@ static bool query_to_queue(queue_t* query_q, char* search_query) {
 		prev_word = query_word;
 		query_word = strtok(NULL, " ");
 	}
-	if (curr_reserved) query_valid = false;
+	if (curr_reserved)
+		query_valid = false;
 	return query_valid;
 }
 
