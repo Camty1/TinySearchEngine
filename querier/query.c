@@ -38,6 +38,7 @@ static void removeWordQueue(void *elementp);
 static void removeDocCount(void *elementp);
 static bool query_to_queue(queue_t* query_q, char* search_query);
 static void printRanks(queue_t* query_q, hashtable_t* index, queue_t* intersection);
+static void printDocIDs(void* elementp);
 
 typedef struct {
     char* word;
@@ -119,7 +120,9 @@ int main(int argc, char* argv[]) {
 
 
 static void printRanks(queue_t* query_q, hashtable_t* index, queue_t* intersection) {
+	queue_t* copy_intersection = qopen();
 	int* first_doc_id = (int*)qget(intersection);
+	qput(copy_intersection, first_doc_id);
 	if (first_doc_id == NULL) 
 		printf("no matching documents.\n");
 	else {
@@ -130,12 +133,14 @@ static void printRanks(queue_t* query_q, hashtable_t* index, queue_t* intersecti
 		printf("doc: %d, ", *first_doc_id);
 		printDocURL(*first_doc_id);
 		while ((doc_id = (int*) qget(intersection)) != NULL) {
+			qput(copy_intersection, doc_id);
 			rank = rankDocument(query_q, index, *doc_id, false);
 			printf("rank: %d, ", rank);
 			printf("doc: %d, ", *doc_id);
 			printDocURL(*doc_id);
 		}
 	}
+	qconcat(intersection, copy_intersection);
 }
 
 
@@ -205,6 +210,12 @@ static void removeWordQueue(void *elementp) {
 	free(wq);
 }
 
+static void printDocIDs(void* elementp) {
+	int* docID = (int*) elementp;
+	printf("broken?\n");
+	printf("docID: %d\n", *docID);
+}
+
 static void removeDocCount(void *elementp) {
 	free(elementp);
 }
@@ -258,6 +269,7 @@ static queue_t* documentIntersection(queue_t* query_q, hashtable_t* index) {
 						qput(copy_doc_q, doc);
 						int* doc_id = (int*)malloc(sizeof(int*));
 						*doc_id = doc->documentId;
+						//						printf("doc_id: %d\n",*doc_id); 
 						qput(intersection, doc_id);
 					}
 					// restores the document queue from the index and closes the
