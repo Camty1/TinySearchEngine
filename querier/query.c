@@ -302,9 +302,11 @@ static queue_t* documentIntersection(queue_t* query_q, hashtable_t* index) {
 
 	// different behavior if the word is the first in the set of "and" queries or not
 	bool is_first_word = true;
-	// queue to store the intersection of document IDs from all words in
+	// queue to store the intersection of document IDs from all the "and" sets in
 	// the query
 	queue_t* intersection = qopen();
+	// temporary intersection queue for each set of "and" queries
+	queue_t* temp_intersection = qopen();
 	char* word;
 	docWordCount_t* doc;
 	int* doc_id;
@@ -316,6 +318,7 @@ static queue_t* documentIntersection(queue_t* query_q, hashtable_t* index) {
 			is_first_word = true;
 			// put reserved word in copy of queue to save for later
 			qput(copy_query_q, word);
+			
 		} else if (strcmp(word, "and") == 0) {
 			// do nothing
 			// otherwise if word is longer than 2 letters
@@ -332,16 +335,22 @@ static queue_t* documentIntersection(queue_t* query_q, hashtable_t* index) {
 				// if the word is first in query, find all documents that the
 				// word is in and add them to the queue intersection
 				if (is_first_word) {
+					// add the previous set of intersections to the master list
+					qconcat(intersection, temp_intersection);
 					queue_t* copy_doc_q = qopen();
+					temp_intersection = qopen();
 					while((doc = (docWordCount_t*)qget(doc_q)) != NULL) {
 						qput(copy_doc_q, doc);
 						int* doc_id = (int*)malloc(sizeof(int*));
 						*doc_id = doc->documentId;
-						//						printf("doc_id: %d\n",*doc_id); 
+						//						printf("doc_id: %d\n",*doc_id);
+						// if docuement has already been added
 						if (qsearch(intersection, compareDocIDs, doc_id)) {
+								// get rid of it
 							free(doc_id);
 						} else {
-							qput(intersection, doc_id);
+							// otherwise add it to the temp list of intersection
+							qput(temp_intersection, doc_id);
 						}
 					}
 					// restores the document queue from the index and closes the
@@ -349,13 +358,14 @@ static queue_t* documentIntersection(queue_t* query_q, hashtable_t* index) {
 					qconcat(doc_q, copy_doc_q);
 					is_first_word = false;
 				}
+								
 				// if word is not first in query, go through all documents
 				// existing in the intersection queue and check whether the word
 				// exists in each document; if it does, add to the queue
 				// containing updated intersection, otherwise do nothing
 				else {
 					queue_t* copy_intersection = qopen();
-					while ((doc_id = (int*)qget(intersection)) != NULL) {
+					while ((doc_id = (int*)qget(temp_intersection)) != NULL) {
 						docWordCount_t* search_result = qsearch(doc_q, compareId, doc_id);
 						if (search_result != NULL) {
 							qput(copy_intersection, doc_id);
@@ -366,7 +376,7 @@ static queue_t* documentIntersection(queue_t* query_q, hashtable_t* index) {
 					}
 					// updates the queue intersection with the document IDs for
 					// which all words in the query thus far exist in
-					qconcat(intersection, copy_intersection);
+					qconcat(temp_intersection, copy_intersection);
 				}
 			}
 			else {
@@ -379,6 +389,8 @@ static queue_t* documentIntersection(queue_t* query_q, hashtable_t* index) {
 			}
 		}
 	}
+	// add the final set of intersections to the master list
+	qconcat(intersection, temp_intersection);
 	// restores the query queue for use in rank document function
 	qconcat(query_q, copy_query_q);
 	return intersection;
