@@ -406,8 +406,6 @@ static void printQueryWord(void* elementp) {
 static int rankDocument(queue_t* queries, hashtable_t* index, int docId, bool step2) {
 	// Variable initialization
 	char* word;
-	bool and = false;
-	bool or = false;
 	int occurences[MAX_QUERY];
 	int i = 0;
 	int occurence;
@@ -416,50 +414,43 @@ static int rankDocument(queue_t* queries, hashtable_t* index, int docId, bool st
 	queue_t* copy_queries = qopen();
 	// Go through words in query queue
 	while ((word = (char*) qget(queries)) != NULL) {
-		if (or && and) {
-			printf("invalid query!\n");
-		}
+		// put word back into temp queue for later
 		qput(copy_queries, word);
-		// These words should be ignored
+		// If word is "or" then store rank for previous set of "and" queries
 		if (strcmp(word, "or") == 0) {
-			or = true;
-			//			printf("word: %s accumulated occurances: %d\n", word, temp_rank);
+			// store rank
 			occurences[i] = temp_rank;
 			i++;
+			// reset rank for next set of "and" queries
 			temp_rank = INT_MAX;
 		} else if (strcmp(word, "and") == 0) {
-			and = true;
+			// do nothing
 		}
 		else {
-			or = false;
-			and = false;
 			// Get number of occurences in index for a given document
-			
 			occurence = getOccurence(index, word, docId);
+			// for testing purposes
 			if (step2)
 				printf("%s:%d ", word, occurence);
 
-			//			printf("word: %s accum occurance: %d\n", word, temp_rank);			
-			// Tracking minimum occurence for rank
+			// Tracking minimum occurence for this set of "and" queries
 			if (occurence < temp_rank) {
-				//				printf("word: %s occurance: %d\n", word, occurence);			
 				temp_rank = occurence;
 			}
 			
 		}
 	}
-	//	printf("word: %s accumulated occurances: %d\n", word, temp_rank);
+	// store the rank of the final set of "and" queries
 	occurences[i] = temp_rank;
+	// loop through the sets of "and" queries and add them together
 	for(int j = 0; j<i+1; j++) {
 		final_rank = final_rank + occurences[j];
-		// printf("rank: %d\n", final_rank);
 	}
 	
-  
-	
+	// store the query back into the original queue
 	qconcat(queries, copy_queries);
 	// At least one word was valid and was given an occurence
-	if (final_rank != INT_MAX) {
+	if (final_rank != INT_MAX && final_rank > 0) {
 		if (step2)
 			printf("-- %d\n", final_rank);
 		return final_rank;
