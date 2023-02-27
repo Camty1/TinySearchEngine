@@ -131,7 +131,8 @@ int main(int argc, char* argv[]) {
 							qclose(query_q);
 							
 						}
-						fclose(inputFile);	
+						fclose(inputFile);
+						fclose(outputFile);
 					}
 				}
         closeIndex(index);
