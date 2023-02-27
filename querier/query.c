@@ -38,26 +38,35 @@ static void printDocURL(int docID, char* pageDir, bool to_file);
 static bool query_to_queue(queue_t* query_q, char* search_query);
 static void printRanks(queue_t* query_q, hashtable_t* index, queue_t* intersection, char* pageDir, bool to_file);
 static void printWordToFile(void* elementp);
+static void initial_steps(bool step_2);
 
 FILE* outputFile;
 
 int main(int argc, char* argv[]) {
 
-    if (argc != 3 && argc != 6) {
+    if (argc != 2 && argc != 3 && argc != 6) {
         printf("usage: query <pageDir> <indexName> [-q]\nquery <pageDir> <indexName> -q <queryFile> <outputFile>\n");
         exit(EXIT_FAILURE);
     }
     else {
+			if (argc == 2) {
+				char* step = argv[1];
+				if (strcmp(step, "1") == 0)
+					initial_steps(false);
+				else
+					initial_steps(true);
+			}
+			else {
 			  char* pageDir = argv[1];
         char* indexName = argv[2];
 
-		   // Load in index		
+				// Load in index		
 				hashtable_t* index = index_all_pages(pageDir, indexName);
 				if (index == NULL) {
 					printf("empty or invalid directory\n");
 					exit(EXIT_FAILURE);
 				}
-     
+				
 				else {
 					if (argc == 3) {
 						
@@ -80,7 +89,6 @@ int main(int argc, char* argv[]) {
 									printRanks(query_q, index, intersection, pageDir, false);
 									qapply(intersection, removeDocCount);
 									qclose(intersection);
-									//				int rank = rankDocument(query_q, index, 1, true); // Step 2
 								}					
 								else {
 									printf("[invalid query]\n");
@@ -136,72 +144,47 @@ int main(int argc, char* argv[]) {
 					}
 				}
         closeIndex(index);
-    }
+			}
+		}
 
-/*
-    hashtable_t* index = indexLoad("../indexer/testFile");
-	// do tests for valgrind.sh
-	if (argc == 2) {
-		char sample_query[MAX_QUERY];
-		strcpy(sample_query, "good and coding ");
-		//strcpy(sample_query, "hello");
-		queue_t* query_q = qopen();
-		bool query_valid = query_to_queue(query_q, sample_query);
-		// Query is valid
-		if (query_valid) {
-			qapply(query_q, printQueryWord);
-			printf("\n");
-			queue_t* intersection;
-			intersection = documentIntersection(query_q, index);
-			printRanks(query_q, index, intersection);
-			qapply(intersection, removeDocCount);
-			qclose(intersection);
-		}
-		else {
-			printf("[invalid query]\n");
-		}
-	qclose(query_q);
-	}
-	else {
-		bool running = true;
-		// Query prompt loop
-		while (running) {
-			char search_query[MAX_QUERY];
-			printf("> ");
-			// Get string from console
-			if (scanf("%[^\n]s", search_query) != EOF) {		
-				// Open query queue
-				queue_t* query_q = qopen();
-				bool query_valid = query_to_queue(query_q, search_query);
-				// Query is valid
-				if (query_valid) {
-					qapply(query_q, printQueryWord);
-					printf("\n");
-					queue_t* intersection;
-					intersection = documentIntersection(query_q, index);
-					printRanks(query_q, index, intersection);
-					qapply(intersection, removeDocCount);
-					qclose(intersection);
-					//				int rank = rankDocument(query_q, index, 1, true); // Step 2
-				}					
-				else {
-					printf("[invalid query]\n");
-				}
-				qclose(query_q);
-				// flushes the standard input to allow for new query to be entered
-				int c;
-				while ((c = getchar()) != '\n');
-			}
-			// EOF character entered - end program
-			else {
+	exit(EXIT_SUCCESS);
+}
+
+static void initial_steps(bool step_2) {
+	hashtable_t* index = indexLoad("../indexer/testFile");
+	bool running = true;
+	// Query prompt loop
+	while (running) {
+		char search_query[MAX_QUERY];
+		printf("> ");
+		// Get string from console
+		if (scanf("%[^\n]s", search_query) != EOF) {		
+			// Open query queue
+			queue_t* query_q = qopen();
+			bool query_valid = query_to_queue(query_q, search_query);
+			// Query is valid
+			if (query_valid) {
+				qapply(query_q, printQueryWord);
 				printf("\n");
-				running = false;
+				if (step_2) {
+					int rank = rankDocument(query_q, index, 1, true); // Step 2
+				}
+			}					
+			else {
+				printf("[invalid query]\n");
 			}
+			qclose(query_q);
+			// flushes the standard input to allow for new query to be entered
+			int c;
+			while ((c = getchar()) != '\n');
+		}
+		// EOF character entered - end program
+		else {
+			printf("\n");
+			running = false;
 		}
 	}
 	closeIndex(index);
-    */
-	exit(EXIT_SUCCESS);
 }
 
 static void printWordToFile(void* elementp) {
