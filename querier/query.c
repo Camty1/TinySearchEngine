@@ -327,6 +327,7 @@ static queue_t* documentIntersection(queue_t* query_q, hashtable_t* index) {
 
 	// different behavior if the word is the first in the set of "and" queries or not
 	bool is_first_word = true;
+
 	// queue to store the intersection of document IDs from all the "and" sets in
 	// the query
 	queue_t* intersection = qopen();
@@ -405,12 +406,16 @@ static queue_t* documentIntersection(queue_t* query_q, hashtable_t* index) {
 				}
 			}
 			else {
-				qclose(copy_query_q);
-				//qapply(copy_doc_q, removeDocCount);
-				//qclose(copy_doc_q);
-				qapply(intersection, removeDocCount);
-				qclose(intersection);
-				return NULL;
+
+				if (is_first_word) {
+					qconcat(intersection, temp_intersection);
+					temp_intersection = qopen();
+				} else {
+					qclose(temp_intersection);
+					temp_intersection = qopen();
+				}
+				is_first_word = false;
+
 			}
 		}
 	}
