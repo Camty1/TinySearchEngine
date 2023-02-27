@@ -21,6 +21,7 @@
 #include <webpage.h>
 #include <pageio.h>
 #include <indexio.h>
+#include <indexer.h>
 
 #define MAX_QUERY 200
 #define MAX_DOCS 1000
@@ -34,23 +35,8 @@ static bool compareId(void* elementp, const void* keyp);
 static bool compareWord(void* elementp, const void* keyp);
 static queue_t* documentIntersection(queue_t* query_q, hashtable_t* index);
 static void printDocURL(int docID, char* pageDir);
-static void closeIndex(hashtable_t* index);
-static void removeWordQueue(void *elementp);
-static void removeDocCount(void *elementp);
 static bool query_to_queue(queue_t* query_q, char* search_query);
 static void printRanks(queue_t* query_q, hashtable_t* index, queue_t* intersection, char* pageDir);
-static void printDocIDs(void* elementp);
-
-typedef struct {
-    char* word;
-    queue_t* documentQueue;
-} wordQueue_t;
-
-typedef struct {
-    int documentId;
-    int count;
-} docWordCount_t;
-
 
 int main(int argc, char* argv[]) {
 
@@ -61,20 +47,25 @@ int main(int argc, char* argv[]) {
     else {
         char* pageDir = argv[1];
         char* indexName = argv[2];
-        
-        // Load in index
-        hashtable_t* index = indexLoad(indexName);
 
-        if (argc == 3) {
-
-    		bool running = true;
-				char search_query[MAX_QUERY];
-    		// Query prompt loop
-    		while (running) {
-    			printf("> ");
-    			// Get string from console
-    			if (scanf("%[^\n]s", search_query) != EOF) {
-						// Open query queue
+		   // Load in index		
+				hashtable_t* index = index_all_pages(pageDir, indexName);
+				if (index == NULL) {
+					printf("empty or invalid directory\n");
+					exit(EXIT_FAILURE);
+				}
+     
+				else {
+					if (argc == 3) {
+						
+						bool running = true;
+						char search_query[MAX_QUERY];
+						// Query prompt loop
+						while (running) {
+							printf("> ");
+							// Get string from console
+							if (scanf("%[^\n]s", search_query) != EOF) {
+								// Open query queue
     				queue_t* query_q = qopen();
     				bool query_valid = query_to_queue(query_q, search_query);
 	    			// Query is valid
@@ -99,18 +90,16 @@ int main(int argc, char* argv[]) {
 	    			// flushes the standard input to allow for new query to be entered
 	    			int c;
 	    			while ((c = getchar()) != '\n');
-	    		}
-	    		// EOF character entered - end program
-	    		else {
-	    			printf("\n");
-	    			running = false;
-	    		}
-    		}
-    	}
+							}
+							// EOF character entered - end program
+							else {
+								printf("\n");
+								running = false;
+							}
+						}
+					}
+				}
         
-        else {
-
-        }
         closeIndex(index);
     }
 
@@ -259,31 +248,6 @@ static bool query_to_queue(queue_t* query_q, char* search_query) {
 		query_valid = false;
 	return query_valid;
 }
-
-
-static void closeIndex(hashtable_t* index) {
-	happly(index, removeWordQueue);
-	hclose(index);
-}
-
-static void removeWordQueue(void *elementp) {
-	wordQueue_t* wq = (wordQueue_t*)elementp;
-	free(wq->word);
-	qapply(wq->documentQueue, removeDocCount);
-	qclose(wq->documentQueue);
-	free(wq);
-}
-
-static void printDocIDs(void* elementp) {
-	int* docID = (int*) elementp;
-	printf("broken?\n");
-	printf("docID: %d\n", *docID);
-}
-
-static void removeDocCount(void *elementp) {
-	free(elementp);
-}
-
 
 static void printDocURL(int docID, char* pageDir) {
 	char buffer[100];
