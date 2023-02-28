@@ -23,7 +23,7 @@
 #include <indexio.h>
 #include <indexer.h>
 
-#define MAX_QUERY 200
+#define MAX_QUERY 1000
 #define MAX_DOCS 1000
 
 static void printQueryWord(void* elementp);
@@ -350,7 +350,7 @@ static queue_t* documentIntersection(queue_t* query_q, hashtable_t* index) {
 					temp_intersection = qopen();
 					while((doc = (docWordCount_t*)qget(doc_q)) != NULL) {
 						qput(copy_doc_q, doc);
-						int* doc_id = (int*)malloc(sizeof(int*));
+						doc_id = (int*)malloc(sizeof(int));
 						*doc_id = doc->documentId;
 						//						printf("doc_id: %d\n",*doc_id);
 						// if docuement has already been added
@@ -394,6 +394,7 @@ static queue_t* documentIntersection(queue_t* query_q, hashtable_t* index) {
 					qconcat(intersection, temp_intersection);
 					temp_intersection = qopen();
 				} else {
+					qapply(temp_intersection, removeDocCount);
 					qclose(temp_intersection);
 					temp_intersection = qopen();
 				}
