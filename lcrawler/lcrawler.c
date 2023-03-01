@@ -1,11 +1,11 @@
 /* lcrawler.c --- 
  * 
  * 
- * Author: Hannah M. Brookes
- * Created: Thu Feb  2 11:06:04 2023 (-0500)
- * Version: 
+ * Author: Cameron J. Wolfe and Hannah M. Brookes
+ * Created: Sun Mar  5 13:27:58 2023 (-0500)
+ * Version: 1
  * 
- * Description: 
+ * Description: Concurrent crawler
  * 
  */
 
@@ -84,12 +84,12 @@ int main(int argv, char* argc[]) {
     
 	// Create queue and hashtable
 	queue_t* pageQueue = lqopen();
-
 	hashtable_t* pageTable = lhopen(HASH_SIZE);
 
 	// Create memory management queue
 	queue_t* memQueue = lqopen();
-
+    
+    // Args variables creation
     id_mutex_t* id = (id_mutex_t*) calloc(1, sizeof(id_mutex_t));
     if (id == NULL) {
         printf("Calloc Error\n");
@@ -132,13 +132,14 @@ int main(int argv, char* argc[]) {
 
     mflags->m = mf;
 
-    // Argument struct population
+    // Argument struct creation
     crawler_args_t* args = (crawler_args_t*) calloc(1, sizeof(crawler_args_t));
     if (args == NULL) {
         printf("Calloc Error\n");
         exit(EXIT_FAILURE);
     }
 
+    // Argument struct population
     args->pageQueue = pageQueue;
     args->pageTable = pageTable;
     args->memQueue = memQueue;
@@ -171,15 +172,15 @@ int main(int argv, char* argc[]) {
     
     // Create array of threads
     pthread_t* thread_list = calloc(numThreads, sizeof(pthread_t));
+    thread_args_t* thread_args_list = (thread_args_t*) calloc(numThreads, sizeof(thread_args_t));
 
     for (int i = 0; i < numThreads; i++) {
         // Create and populate argument struct for current thread
-        thread_args_t* thread_args = (thread_args_t*) calloc(1, sizeof(thread_args_t));
-        thread_args->args = args;
-        thread_args->id = i;
+        thread_args_list[i].args = args;
+        thread_args_list[i].id = i;
 
         // Run thread
-        if (pthread_create(&thread_list[i], NULL, crawl, thread_args) != 0) {
+        if (pthread_create(&thread_list[i], NULL, crawl, &thread_args_list[i]) != 0) {
             printf("Failed to create thread\n");
             exit(EXIT_FAILURE);
         }
@@ -192,9 +193,18 @@ int main(int argv, char* argc[]) {
             exit(EXIT_FAILURE);
         }
     }
-
-    free(thread_list);
     
+    // Free thread variables
+    free(thread_list);
+    free(thread_args_list);
+    
+    // Free args variables
+    free(m);
+    free(flags);
+    free(mflags);
+    free(mf);
+    free(args);
+    free(id);
     // Deal with webpage memory 
 	webpage_t* memPage;
 	while((memPage = lqget(memQueue)) != NULL) {
