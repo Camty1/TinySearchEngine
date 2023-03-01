@@ -86,6 +86,15 @@ int32_t lhput(lhashtable_t* htp, void* ep, const char* key, int keylen) {
 
 }
 
+int32_t lhputsketch(lhashtable_t* htp, void* ep, const char* key, int keylen) {
+    lockedHash_t* lhash = (lockedHash_t*) htp;
+
+    int32_t status = hput(lhash->hash, ep, key, keylen);
+
+    return status;
+
+}
+
 void lhapply(lhashtable_t *htp, void (*fn)(void* ep)) {
 
     lockedHash_t* lhash = (lockedHash_t*) htp;
@@ -123,4 +132,20 @@ void* lhremove(lhashtable_t* htp, bool (*searchfn)(void* elementp, const void* s
 
     return result;
 
+}
+
+int32_t lhlock(lhashtable_t* htp) {
+    lockedHash_t* lhash = (lockedHash_t*) htp;
+    
+    pthread_mutex_lock(lhash->m);
+    
+    return 0;
+}
+
+int32_t lhunlock(lhashtable_t* htp) {
+    lockedHash_t* lhash = (lockedHash_t*) htp;
+
+    pthread_mutex_unlock(lhash->m);
+
+    return 0;
 }

@@ -28,6 +28,15 @@ int indexSave(hashtable_t* index, char* indexnm) {
     return 0;
 }
 
+int lindexSave(lhashtable_t* index, char* indexnm) {
+    outputFile = fopen(indexnm, "w");
+
+    lhapply(index, printWordToFile);
+
+    fclose(outputFile);
+    return 0;
+}
+
 hashtable_t* indexLoad(char* indexnm) {
     char buffer[100];
     inputFile = fopen(indexnm, "r");

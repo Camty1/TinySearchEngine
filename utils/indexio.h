@@ -15,9 +15,12 @@
 #include <strings.h>
 #include <queue.h>
 #include <hash.h>
+#include <lhash.h>
 
 // Take an index hashtable and save it to the file indexnm
 int indexSave(hashtable_t* index, char* indexnm);
+
+int lindexSave(lhashtable_t* index, char* indexnm);
 
 // Load an index from indexnm
 hashtable_t* indexLoad(char* indexnm);

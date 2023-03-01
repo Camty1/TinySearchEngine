@@ -24,6 +24,8 @@ int32_t lhput(lhashtable_t *htp,
         const char* key, 
         int keylen);
 
+int32_t lhputsketch(lhashtable_t* htp, void* ep, const char* key, int keylen);
+
 void lhapply(lhashtable_t *htp, void (*fn)(void* ep));
 
 void* lhsearch(lhashtable_t *htp, 
@@ -35,3 +37,7 @@ void* lhremove(lhashtable_t *htp,
         bool (*searchfn)(void* elementp, const void* searchkeyp), 
         const char *key, 
         int32_t keylen);
+
+int32_t lhlock(lhashtable_t* htp);
+
+int32_t lhunlock(lhashtable_t* htp);
