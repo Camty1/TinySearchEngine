@@ -56,7 +56,7 @@ void lqclose(lqueue_t *lqp) {
 	free(lqueue);
 }
 
-int32_t lqputcam(lqueue_t *lqp, void *elementp) {
+int32_t lqput(lqueue_t *lqp, void *elementp) {
 	// cast to internal queue type to access lock
 	internalLQueue_t* lqueue = (internalLQueue_t*) lqp;
 	// put lock on mutex
@@ -68,39 +68,8 @@ int32_t lqputcam(lqueue_t *lqp, void *elementp) {
 	return result;
 }
 
-void* lqput(void* args) {
-	lQueuePut_t *lqpt = (lQueuePut_t*)args;
-	lqueue_t* lqp = lqpt -> lqueue;
-	// cast to internal queue type to access lock
-	internalLQueue_t* lqueue = (internalLQueue_t*) lqp;
-	// put lock on mutex
-	printf("waiting for lock\n");
-	pthread_mutex_lock(lqueue->m);
-	printf("got lock\n");
-	int32_t* adding = (int32_t*)lqpt->elementp;
-	printf("value adding: %d\n", *adding);
-	// put the element in the queue
-	lqpt -> result = qput(lqueue->queue, lqpt->elementp);
-	//	sleep(15);
-	// unlock the mutex
-	pthread_mutex_unlock(lqueue->m);
-	return NULL;
-}
 
-void* lqget(void* args) {
-	lQueueGet_t* lqpt = (lQueueGet_t*)args;
-	// cast to internal queue type to access lock
-	internalLQueue_t* lqueue = (internalLQueue_t*) lqpt->lqueue;
-	// put lock on mutex
-	pthread_mutex_lock(lqueue->m);
-	// get first item from queue
-	lqpt->elementp = qget(lqueue->queue);
-	// unlock the mutex
-	pthread_mutex_unlock(lqueue->m);
-	return NULL;
-}
-
-void* lqgetcam(lqueue_t* lqp) {
+void* lqget(lqueue_t* lqp) {
     internalLQueue_t* lqueue = (internalLQueue_t*) lqp;
 
     pthread_mutex_lock(lqueue->m);

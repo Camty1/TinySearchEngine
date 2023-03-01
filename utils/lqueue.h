@@ -30,13 +30,9 @@ lqueue_t* lqopen(void);
 
 void lqclose(lqueue_t *lqp);
 
-int32_t lqputcam(lqueue_t *lqp, void *elementp);
+int32_t lqput(lqueue_t *lqp, void *elementp);
 
-void* lqput(void* args);
-
-void* lqgetcam(lqueue_t *lqp);
-
-void* lqget(void* args);
+void* lqget(lqueue_t *lqp);
 
 void lqapply(lqueue_t *lqp, void (*fn)(void* elementp));
 
