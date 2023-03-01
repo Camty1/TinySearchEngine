@@ -19,7 +19,7 @@
 
 typedef struct internalLQueue {
 	queue_t* queue;
-	pthread_mutex_t m;
+	pthread_mutex_t* m;
 } internalLQueue_t;
 
 lqueue_t* lqopen(void) {
@@ -51,4 +51,39 @@ void lqclose(lqueue_t *lqp) {
 	// free memory for mutext pointer and internal queue
 	free(lqueue->m);
 	free(lqueue);
+}
+
+int32_t lqput(lqueue_t *lqp, void *elementp) {
+	// cast to internal queue type to access lock
+	internalLQueue_t* lqueue = (internalLQueue_t*) lqp;
+	// put lock on mutex
+	pthread_mutex_lock(lqueue->m);
+	// put the element in the queue
+	int32_t result = qput(lqueue->queue, elementp);
+	// unlock the mutex
+	pthread_mutex_unlock(lqueue->m);
+	return result;
+}
+
+void* lqget(lqueue_t *lqp) {
+	// cast to internal queue type to access lock
+	internalLQueue_t* lqueue = (internalLQueue_t*) lqp;
+	// put lock on mutex
+	pthread_mutex_lock(lqueue->m);
+	// get first item from queue
+	void* elementp = qget(lqueue->queue);
+	// unlock the mutex
+	pthread_mutex_unlock(lqueue->m);
+	return elementp;
+}
+
+void lqapply(lqueue_t *lqp, void (*fn)(void *elementp)) {
+	// cast to internal queue type to access lock
+	internalLQueue_t* lqueue = (internalLQueue_t*) lqp;
+	// put lock on mutex
+	pthread_mutex_lock(lqueue->m);
+	// use apply function from queue module
+	qapply(lqueue->queue, fn);
+	// unlock the mutex
+	pthread_mutex_unlock(lqueue->m);
 }
