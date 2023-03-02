@@ -17,10 +17,12 @@
 #include <lqueue.h>
 #include <pthread.h>
 
+
 typedef struct internalLQueue {
 	queue_t* queue;
 	pthread_mutex_t* m;
 } internalLQueue_t;
+
 
 lqueue_t* lqopen(void) {
 	// allocates memory for internal locked-queue type
@@ -53,7 +55,7 @@ void lqclose(lqueue_t *lqp) {
 	free(lqueue);
 }
 
-int32_t lqput(lqueue_t *lqp, void *elementp) {
+/*int32_t lqput(lqueue_t *lqp, void *elementp) {
 	// cast to internal queue type to access lock
 	internalLQueue_t* lqueue = (internalLQueue_t*) lqp;
 	// put lock on mutex
@@ -63,6 +65,21 @@ int32_t lqput(lqueue_t *lqp, void *elementp) {
 	// unlock the mutex
 	pthread_mutex_unlock(lqueue->m);
 	return result;
+	}*/
+
+void* lqput(void* args) {
+	lQueuePut_t *lqpt = (lQueuePut_t*)args;
+	lqueue_t* lqp = lqpt -> lqueue;
+	// cast to internal queue type to access lock
+	internalLQueue_t* lqueue = (internalLQueue_t*) lqp;
+	// put lock on mutex
+	pthread_mutex_lock(lqueue->m);
+	// put the element in the queue
+	lqpt -> result = qput(lqueue->queue, lqpt->elementp);
+	printf("result of adding: %d\n", lqpt->result);
+	// unlock the mutex
+	pthread_mutex_unlock(lqueue->m);
+	return NULL;
 }
 
 void* lqget(lqueue_t *lqp) {
