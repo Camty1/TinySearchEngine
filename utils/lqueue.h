@@ -21,6 +21,10 @@ typedef struct lQueuePut {
 	int32_t result;
 } lQueuePut_t;
 
+typedef struct lQueueGet {
+	lqueue_t* lqueue;
+	void* elementp;
+} lQueueGet_t;
 
 lqueue_t* lqopen(void);
 
@@ -30,7 +34,9 @@ void lqclose(lqueue_t *lqp);
 
 void* lqput(void* args);
 
-void* lqget(lqueue_t *lqp);
+//void* lqget(lqueue_t *lqp);
+
+void* lqget(void* args);
 
 void lqapply(lqueue_t *lqp, void (*fn)(void* elementp));
 

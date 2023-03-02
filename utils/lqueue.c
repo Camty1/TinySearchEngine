@@ -87,16 +87,17 @@ void* lqput(void* args) {
 	return NULL;
 }
 
-void* lqget(lqueue_t *lqp) {
+void* lqget(void* args) {
+	lQueueGet_t* lqpt = (lQueueGet_t*)args;
 	// cast to internal queue type to access lock
-	internalLQueue_t* lqueue = (internalLQueue_t*) lqp;
+	internalLQueue_t* lqueue = (internalLQueue_t*) lqpt->lqueue;
 	// put lock on mutex
 	pthread_mutex_lock(lqueue->m);
 	// get first item from queue
-	void* elementp = qget(lqueue->queue);
+	lqpt->elementp = qget(lqueue->queue);
 	// unlock the mutex
 	pthread_mutex_unlock(lqueue->m);
-	return elementp;
+	return NULL;
 }
 
 void lqapply(lqueue_t *lqp, void (*fn)(void *elementp)) {
