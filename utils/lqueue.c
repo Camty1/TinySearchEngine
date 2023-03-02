@@ -16,6 +16,7 @@
 #include <queue.h>
 #include <lqueue.h>
 #include <pthread.h>
+#include <unistd.h>
 
 
 typedef struct internalLQueue {
@@ -73,10 +74,14 @@ void* lqput(void* args) {
 	// cast to internal queue type to access lock
 	internalLQueue_t* lqueue = (internalLQueue_t*) lqp;
 	// put lock on mutex
+	printf("waiting for lock\n");
 	pthread_mutex_lock(lqueue->m);
+	printf("got lock\n");
+	int32_t* adding = (int32_t*)lqpt->elementp;
+	printf("value adding: %d\n", *adding);
 	// put the element in the queue
 	lqpt -> result = qput(lqueue->queue, lqpt->elementp);
-	printf("result of adding: %d\n", lqpt->result);
+	//	sleep(15);
 	// unlock the mutex
 	pthread_mutex_unlock(lqueue->m);
 	return NULL;

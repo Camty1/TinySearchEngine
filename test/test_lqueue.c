@@ -29,13 +29,24 @@ int main(void) {
 
 	int* a = (int*)malloc(sizeof(int));
 	*a = 10;
+	int* b = (int*)malloc(sizeof(int));
+	*b = 15;
+												
 
 	lQueuePut_t* lqpt = (lQueuePut_t*)malloc(sizeof(lQueuePut_t));
 	lqpt -> lqueue = lqueue;
 	lqpt -> elementp = a;
 
+	lQueuePut_t* lqpt2 = (lQueuePut_t*)malloc(sizeof(lQueuePut_t));
+	lqpt2 -> lqueue = lqueue;
+	lqpt2 -> elementp = b;
+
 	if (pthread_create(&tID1, NULL, lqput, lqpt) != 0) {
 		printf("thread create failed\n");
+		exit(EXIT_FAILURE);
+	}
+	if (pthread_create(&tID2, NULL, lqput, lqpt2) != 0) {
+		printf("thread create failed 2\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -43,15 +54,23 @@ int main(void) {
 		printf("thread join failed\n");
 		exit(EXIT_FAILURE);
 	}
+	if (pthread_join(tID2, NULL) != 0) {
+		printf("thread join failed\n");
+		exit(EXIT_FAILURE);
+	}
 	printf("success: %d\n", lqpt->result);
 	
-	/*
-	int* b = (int*)lqget(lqueue);
-	printf("result: %d\n", *b);
-	*/
+	
+	int* c = (int*)lqget(lqueue);
+	printf("result: %d\n", *c);
+	free(c);
+	//c = (int*)lqget(lqueue);
+	//printf("result: %d\n", *c);
+	
 	lqapply(lqueue, freeElement);
 	lqclose(lqueue);
 	free(lqpt);
+	free(lqpt2);
 
 	//free(b);
 	
